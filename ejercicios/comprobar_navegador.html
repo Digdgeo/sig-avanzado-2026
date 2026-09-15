@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Puede este navegador con GeoLibre?</title>
+<style>
+  :root {
+    --paper: #f7f8f4; --ink: #14201b; --ink-2: #4f5c55; --muted: #88908a; --rule: #d6dbd2;
+    --ok: #0b7a3b; --ok-bg: #e3f3e8; --warn: #8a5a00; --warn-bg: #fbf0d9; --bad: #b3261e; --bad-bg: #fbe4e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 17px/1.5 system-ui, "Segoe UI", Ubuntu, "DejaVu Sans", sans-serif;
+    padding: 32px 20px 48px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  .eyebrow { font: 600 13px/1 ui-monospace, "DejaVu Sans Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: #9a6a12; }
+  h1 { margin: 0; font-size: 34px; line-height: 1.1; letter-spacing: -.01em; }
+  .verdict { padding: 20px 22px; border-radius: 6px; font-size: 20px; line-height: 1.4; }
+  .verdict b { display: block; font-size: 26px; margin-bottom: 4px; }
+  .verdict.ok { background: var(--ok-bg); color: var(--ok); }
+  .verdict.warn { background: var(--warn-bg); color: var(--warn); }
+  .verdict.bad { background: var(--bad-bg); color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font: 600 12px/1 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 8px 10px 0; border-bottom: 1.5px solid var(--ink); }
+  td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.estado { width: 110px; font-weight: 600; white-space: nowrap; }
+  .ok-t { color: var(--ok); } .warn-t { color: var(--warn); } .bad-t { color: var(--bad); }
+  .detalle { color: var(--ink-2); font-size: 15px; }
+  .info { font: 14px/1.5 ui-monospace, "DejaVu Sans Mono", monospace; color: var(--ink-2); word-break: break-word; }
+  .pasos { color: var(--ink-2); }
+  .pasos code { background: #eef1ea; padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">SIG Avanzado 2026 · comprobación de equipo</div>
+  <h1>¿Puede este navegador con GeoLibre?</h1>
+  <div id="veredicto" class="verdict warn"><b>Comprobando…</b>Si este mensaje no cambia, el navegador es demasiado antiguo para ejecutar la prueba.</div>
+
+  <table>
+    <thead><tr><th>Requisito</th><th>Estado</th></tr></thead>
+    <tbody id="filas"></tbody>
+  </table>
+
+  <p class="info" id="info"></p>
+
+  <div class="pasos" id="pasos" hidden>
+    <strong>Si sale en rojo en Ubuntu:</strong> descarga Firefox actual en tu carpeta personal (no necesita permisos):<br>
+    <code>cd ~ &amp;&amp; wget -O firefox.tar.xz "https://download.mozilla.org/?product=firefox-latest-ssl&amp;os=linux64&amp;lang=es-ES" &amp;&amp; tar -xJf firefox.tar.xz &amp;&amp; ~/firefox/firefox -P --no-remote</code><br>
+    y abre este archivo otra vez con ese Firefox.
+  </div>
+</main>
+
+<script>
+(function () {
+  var filas = document.getElementById('filas');
+  var graves = 0, avisos = 0;
+
+  function fila(nombre, estado, detalle) {
+    var tr = document.createElement('tr');
+    var clase = estado === 'ok' ? 'ok-t' : estado === 'warn' ? 'warn-t' : 'bad-t';
+    var texto = estado === 'ok' ? '✔ Sí' : estado === 'warn' ? '⚠ Revisar' : '✖ No';
+    tr.innerHTML = '<td>' + nombre + '<div class="detalle">' + detalle + '</div></td><td class="estado ' + clase + '">' + texto + '</td>';
+    filas.appendChild(tr);
+    if (estado === 'bad') graves++;
+    if (estado === 'warn') avisos++;
+  }
+
+  function prueba(fn) { try { return !!fn(); } catch (e) { return false; } }
+
+  // Versión del navegador
+  var ua = navigator.userAgent;
+  var nombre = 'desconocido', version = 0, m;
+  if ((m = ua.match(/Edg\/(\d+)/))) { nombre = 'Edge'; version = +m[1]; }
+  else if ((m = ua.match(/Firefox\/(\d+)/))) { nombre = 'Firefox'; version = +m[1]; }
+  else if ((m = ua.match(/Chrom(?:e|ium)\/(\d+)/))) { nombre = 'Chrome'; version = +m[1]; }
+  var minimo = nombre === 'Firefox' ? 114 : 111;
+  var recomendado = nombre === 'Firefox' ? 128 : 125;
+  if (nombre === 'desconocido') fila('Versión del navegador', 'warn', 'No se ha podido identificar: ' + ua);
+  else if (version < minimo) fila('Versión del navegador', 'bad', nombre + ' ' + version + ' · mínimo ' + minimo + ', recomendado ' + recomendado + ' o superior');
+  else if (version < recomendado) fila('Versión del navegador', 'warn', nombre + ' ' + version + ' · puede funcionar; recomendado ' + recomendado + ' o superior');
+  else fila('Versión del navegador', 'ok', nombre + ' ' + version);
+
+  // WebAssembly (DuckDB-WASM, herramientas Whitebox)
+  fila('WebAssembly', prueba(function () { return typeof WebAssembly === 'object' && WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); }) ? 'ok' : 'bad',
+       'Motor SQL (DuckDB) y herramientas de geoproceso');
+
+  // WebGL2 (MapLibre GL 6)
+  var gl2 = prueba(function () { return document.createElement('canvas').getContext('webgl2'); });
+  var gpu = '';
+  try {
+    var ctx = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl');
+    var dbg = ctx && ctx.getExtension('WEBGL_debug_renderer_info');
+    if (dbg) gpu = ctx.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+  } catch (e) {}
+  fila('WebGL2', gl2 ? 'ok' : 'bad', 'Dibujo del mapa' + (gpu ? ' · ' + gpu : '') + (gl2 ? '' : ' · en Firefox: about:config → webgl.disabled = false'));
+
+  // JavaScript moderno (GeoLibre se publica como "esnext")
+  var js = [
+    ['BigInt', function () { return typeof BigInt64Array === 'function'; }],
+    ['structuredClone', function () { return typeof structuredClone === 'function'; }],
+    ['Array.findLast', function () { return typeof [].findLast === 'function'; }],
+    ['Array.toSorted', function () { return typeof [].toSorted === 'function'; }],
+    ['Object.groupBy', function () { return typeof Object.groupBy === 'function'; }],
+    ['Promise.withResolvers', function () { return typeof Promise.withResolvers === 'function'; }],
+    ['Set.union', function () { return typeof new Set().union === 'function'; }],
+    ['Web Workers', function () { return typeof Worker === 'function'; }]
+  ];
+  var faltan = js.filter(function (p) { return !prueba(p[1]); }).map(function (p) { return p[0]; });
+  var basicos = ['BigInt', 'structuredClone', 'Array.findLast', 'Array.toSorted'];
+  var faltanBasicos = faltan.filter(function (f) { return basicos.indexOf(f) >= 0; });
+  if (faltanBasicos.length) fila('JavaScript moderno', 'bad', 'Faltan: ' + faltan.join(', '));
+  else if (faltan.length) fila('JavaScript moderno', 'warn', 'Faltan funciones recientes: ' + faltan.join(', ') + '. Puede fallar alguna parte');
+  else fila('JavaScript moderno', 'ok', 'Todas las funciones recientes comprobadas están disponibles');
+
+  // Almacenamiento para los datos cargados
+  fila('Almacenamiento del navegador', prueba(function () { return window.indexedDB; }) ? 'ok' : 'warn',
+       'Guardar el proyecto dentro del navegador (IndexedDB)');
+
+  // Memoria y núcleos (orientativo; Firefox no informa de la memoria)
+  var mem = navigator.deviceMemory, cpu = navigator.hardwareConcurrency;
+  if (mem) fila('Memoria del equipo', mem >= 8 ? 'ok' : mem >= 4 ? 'warn' : 'bad', '≈ ' + mem + ' GB' + (mem < 8 ? ' · usa los datos de datos/ligero/' : ''));
+  else fila('Memoria del equipo', 'warn', 'Este navegador no la informa. En Ubuntu: free -h en un terminal (8 GB van bien)');
+
+  document.getElementById('info').textContent =
+    'Núcleos: ' + (cpu || '?') + ' · Pantalla: ' + screen.width + '×' + screen.height + ' · ' + ua;
+
+  var v = document.getElementById('veredicto');
+  if (graves) {
+    v.className = 'verdict bad';
+    v.innerHTML = '<b>No: GeoLibre no funcionará bien aquí</b>Revisa lo marcado en rojo. En Ubuntu, la solución habitual es un Firefox actual en la carpeta personal.';
+    document.getElementById('pasos').hidden = false;
+  } else if (avisos) {
+    v.className = 'verdict warn';
+    v.innerHTML = '<b>Probablemente sí</b>Abre web.geolibre.app y carga gps_aves_2019_2020.parquet. Si va lento, usa los datos de datos/ligero/.';
+  } else {
+    v.className = 'verdict ok';
+    v.innerHTML = '<b>Sí, este navegador puede con GeoLibre</b>Abre web.geolibre.app y empieza por el bloque 1.';
+  }
+})();
+</script>
+</body>
+</html>

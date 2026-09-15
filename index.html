@@ -1,0 +1,1750 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El tiempo, del SIG a la nube</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   Tokens · tema único (proyector). Neutros con sesgo verde-salino.
+------------------------------------------------------------------- */
+:root {
+  --ground:   #e9ece6;   /* bruma de marisma: lo que rodea la diapositiva */
+  --paper:    #f7f8f4;   /* superficie de la diapositiva */
+  --panel:    #eef1ea;   /* bloques de apoyo */
+  --ink:      #14201b;
+  --ink-2:    #4f5c55;
+  --muted:    #88908a;
+  --rule:     #d6dbd2;
+  --water:    #256abf;   /* lucio: acento principal, coincide con los gráficos */
+  --water-lt: #cde2fb;
+  --sedge:    #9a6a12;   /* castañuela: acento secundario, solo en el tiempo */
+  --ansar:    #2a78d6;
+  --flamenco: #eb6834;
+  --espatula: #1baf7a;
+  --code-bg:  #16211c;
+  --code-ink: #e4ebe5;
+  --code-dim: #8fa198;
+  --code-key: #9ec5f4;
+  --code-str: #f0b27a;
+
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:    "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------
+   Escenario 1600 × 900 escalado a la ventana
+------------------------------------------------------------------- */
+.deck { position: fixed; inset: 0; display: grid; place-items: center; }
+.stage {
+  width: 1600px; height: 900px; position: relative;
+  transform-origin: center center;
+  transform: scale(var(--s, 1));
+}
+.slide {
+  position: absolute; inset: 0;
+  background: var(--paper);
+  padding: 72px 96px 120px;
+  display: none;
+  flex-direction: column;
+  gap: 28px;
+  box-shadow: 0 1px 0 rgba(20,32,27,.06), 0 24px 60px -30px rgba(20,32,27,.25);
+}
+.slide.is-active { display: flex; }
+@media (prefers-reduced-motion: no-preference) {
+  .slide.is-active > * { animation: rise .45s ease-out both; }
+  .slide.is-active > *:nth-child(2) { animation-delay: .05s; }
+  .slide.is-active > *:nth-child(3) { animation-delay: .1s; }
+}
+@keyframes rise { from { transform: translateY(8px); } to { transform: none; } }
+
+/* ------------------------------------------------------------------
+   Tipografía
+------------------------------------------------------------------- */
+.eyebrow {
+  font: 500 17px/1 var(--mono);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sedge);
+  display: flex; gap: 18px; align-items: baseline;
+}
+.eyebrow span + span::before { content: "·"; margin-right: 18px; color: var(--muted); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 132px; line-height: .92; font-weight: 800; letter-spacing: -.035em; }
+h2 { font-size: 60px; line-height: 1.02; font-weight: 700; letter-spacing: -.025em; max-width: 1250px; }
+h3 { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+p, li { font-size: 25px; line-height: 1.45; margin: 0; color: var(--ink-2); }
+.lead { font-size: 30px; line-height: 1.4; color: var(--ink); max-width: 1100px; }
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: normal; color: var(--water); font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+p code, li code { background: var(--panel); padding: 1px 7px; border-radius: 4px; color: var(--ink); }
+.small { font-size: 20px; }
+.muted { color: var(--muted); }
+ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+ul.plain li { padding-left: 26px; position: relative; }
+ul.plain li::before {
+  content: ""; position: absolute; left: 0; top: .62em;
+  width: 12px; height: 2px; background: var(--water);
+}
+
+/* ------------------------------------------------------------------
+   Maquetación
+------------------------------------------------------------------- */
+.cols { display: grid; gap: 56px; flex: 1; min-height: 0; }
+.c-2 { grid-template-columns: 1fr 1fr; }
+.c-5-7 { grid-template-columns: 5fr 7fr; }
+.c-7-5 { grid-template-columns: 7fr 5fr; }
+.c-4-8 { grid-template-columns: 4fr 8fr; }
+.stack { display: flex; flex-direction: column; gap: 22px; min-height: 0; }
+.center-v { align-self: center; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+figure img { width: 100%; height: auto; max-height: 100%; object-fit: contain; display: block; }
+figcaption { font: 400 17px/1.4 var(--mono); color: var(--muted); }
+.fill { flex: 1; min-height: 0; }
+
+/* bloques */
+.models { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; flex: 1; }
+.model {
+  border-top: 3px solid var(--ink); padding-top: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.model h3 { font-size: 26px; }
+.model p { font-size: 20px; line-height: 1.4; }
+.model .ex { font: 400 16px/1.4 var(--mono); color: var(--water); margin-top: auto; }
+.model svg { width: 100%; height: 120px; }
+
+table.data { border-collapse: collapse; width: 100%; font-size: 22px; }
+table.data th {
+  text-align: left; font: 500 15px/1.2 var(--mono); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 0 18px 12px 0; border-bottom: 1.5px solid var(--ink);
+}
+table.data td { padding: 13px 18px 13px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); vertical-align: top; }
+table.data td:first-child { color: var(--ink); font-weight: 600; }
+table.data .mono { font-size: 19px; }
+table.data.compacta { font-size: 19px; }
+table.data.compacta td { padding: 6px 14px 6px 0; }
+
+pre.code {
+  margin: 0; background: var(--code-bg); color: var(--code-ink);
+  font: 400 18px/1.5 var(--mono); padding: 22px 26px; border-radius: 6px;
+  white-space: pre; overflow: hidden; flex-shrink: 0;
+}
+pre.code .c { color: var(--code-dim); }
+pre.code .k { color: var(--code-key); }
+pre.code .s { color: var(--code-str); }
+
+.fixrow {
+  display: grid; grid-template-columns: repeat(7, auto); gap: 0;
+  border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--rule);
+}
+.fixrow div { padding: 14px 22px 16px 0; }
+.fixrow .k { font: 500 14px/1 var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+.fixrow .v { font: 500 24px/1 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.stat b { font: 700 64px/1 var(--display); color: var(--ink); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 20px; color: var(--ink-2); line-height: 1.35; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+
+.callout {
+  background: var(--panel); padding: 22px 26px; border-radius: 4px;
+  font-size: 23px; line-height: 1.45; color: var(--ink);
+}
+.callout b { font-family: var(--display); font-weight: 700; }
+
+.tool { display: grid; grid-template-columns: 290px 1fr; gap: 26px; padding: 13px 0; border-bottom: 1px solid var(--rule); }
+.tool:first-child { border-top: 1.5px solid var(--ink); }
+.tool h3 { font-size: 25px; }
+.tool .ver { font: 400 15px/1.3 var(--mono); color: var(--muted); margin-top: 5px; }
+.tool p { font-size: 19.5px; line-height: 1.38; }
+
+.sp { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+
+/* portada y separadores */
+.slide.cover { background: var(--paper); padding-top: 96px; justify-content: space-between; }
+.cover .title-block { display: flex; flex-direction: column; gap: 30px; }
+.cover .sub { font-size: 32px; line-height: 1.35; color: var(--ink-2); max-width: 820px; }
+.cover .who { display: flex; gap: 48px; font-size: 21px; color: var(--ink-2); }
+.cover .who b { display: block; font-family: var(--display); font-size: 26px; color: var(--ink); margin-bottom: 4px; }
+.cover-art { position: absolute; right: 96px; top: 120px; width: 480px; }
+svg.diagram { width: 100%; height: 100%; min-height: 0; }
+
+.slide.part { background: var(--code-bg); justify-content: center; }
+.part .eyebrow { color: #d9a441; }
+.part h2 { color: #f2f5f0; font-size: 104px; line-height: .95; letter-spacing: -.035em; max-width: 1200px; }
+.part p { color: #a9b8b0; font-size: 30px; max-width: 900px; }
+
+/* ------------------------------------------------------------------
+   Cronología del ciclo hidrológico = barra de progreso
+------------------------------------------------------------------- */
+.cycle {
+  position: absolute; left: 96px; right: 96px; bottom: 40px; height: 44px;
+  pointer-events: none; z-index: 5;
+}
+.cycle .axis { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--rule); }
+.cycle .done { position: absolute; left: 0; top: 10px; height: 2px; background: var(--sedge); width: 0; transition: width .35s ease; }
+.cycle .mark {
+  position: absolute; top: 4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%;
+  background: var(--paper); border: 2.5px solid var(--sedge); transition: left .35s ease;
+}
+.cycle .months { position: absolute; left: 0; right: 0; top: 24px; display: grid; grid-template-columns: repeat(12, 1fr); }
+.cycle .months span { font: 400 13px/1 var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.cycle .count { position: absolute; right: 0; top: -20px; font: 500 14px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.deck.on-dark .cycle .axis { background: #33423b; }
+.deck.on-dark .cycle .mark { background: var(--code-bg); }
+.deck.on-dark .cycle .months span, .deck.on-dark .cycle .count { color: #74857c; }
+
+/* cronograma del curso */
+.crono {
+  display: grid; flex: 1; min-height: 0;
+  grid-template-columns: 70px repeat(5, 1fr);
+  grid-template-rows: 30px 1fr 1fr 22px 1fr 1fr 22px 1fr 1fr;
+  gap: 4px;
+}
+.crono .dia { font: 500 14px/30px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); text-align: center; }
+.crono .hora { font: 500 15px/1 var(--mono); color: var(--muted); padding-top: 8px; font-variant-numeric: tabular-nums; }
+.crono .pausa {
+  grid-column: 2 / 7; font: 500 12px/22px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); text-align: center; background: var(--panel);
+}
+.crono .c {
+  border-radius: 3px; padding: 8px 10px; font-size: 16px; line-height: 1.25;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.crono .visto { background: #e4e8e1; color: var(--ink-2); }
+.crono .visto.sig { background: #e4e8e1; }
+.crono .mio { color: #fff; font-weight: 600; font-size: 17px; }
+.crono .t-series { background: var(--water); }
+.crono .t-geolibre { background: #1c5cab; }
+.crono .t-python { background: var(--sedge); }
+.crono .t-gee { background: #17865e; }
+.crono .t-cimas { background: #c2531f; }
+.crono .sig-mio { opacity: .78; }
+.crono .colchon { background: transparent; color: #1c5cab; border: 2px dashed #1c5cab; font-weight: 600; }
+.crono-leyenda { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 17px; color: var(--ink-2); }
+.crono-leyenda span::before {
+  content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+  margin-right: 8px; vertical-align: -2px; background: var(--c);
+}
+
+/* introducción a GeoLibre */
+.menu-ruta { font: 500 19px/1.4 var(--mono); color: var(--ink); }
+.menu-ruta b { color: var(--water); font-weight: 500; }
+.formatos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 36px; }
+.formato { border-top: 1.5px solid var(--ink); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.formato .peso { font: 700 44px/1 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.formato .peso small { font: 500 18px var(--mono); color: var(--muted); letter-spacing: 0; }
+.formato p { font-size: 19px; }
+
+.crono .t-practica { background: #2f5d50; }
+
+/* orden del día */
+.orden { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.orden li { border-top: 1px solid var(--rule); }
+.orden li:last-child { border-bottom: 1px solid var(--rule); }
+.orden a {
+  display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 26px;
+  padding: 12px 14px; color: inherit; text-decoration: none; border-radius: 4px;
+}
+.orden a:hover, .orden a:focus-visible { background: var(--panel); outline: none; }
+.orden .n { font: 700 42px/1 var(--display); color: var(--water); font-variant-numeric: tabular-nums; }
+.orden .t { display: block; font: 700 31px/1.12 var(--display); letter-spacing: -.012em; color: var(--ink); }
+.orden .d { display: block; margin-top: 4px; font-size: 20px; line-height: 1.3; color: var(--ink-2); }
+.orden .ir { font: 500 16px/1 var(--mono); color: var(--muted); letter-spacing: .04em; }
+.orden a:hover .ir, .orden a:focus-visible .ir { color: var(--water); }
+.orden li.despues .n { color: var(--muted); }
+body.sin-nav button.nav { pointer-events: none; }
+
+/* Earth Engine */
+.captura { margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.captura img {
+  width: auto; max-width: 100%; height: auto; max-height: 470px; align-self: flex-start;
+  border: 1px solid var(--rule); border-radius: 4px; background: #fff;
+  box-shadow: 0 14px 34px -22px rgba(20, 32, 27, .45);
+}
+.pasos-gee { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; counter-reset: paso; }
+.pasos-gee li { counter-increment: paso; display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: baseline; font-size: 23px; }
+.pasos-gee li::before { content: counter(paso); font: 700 36px/1 var(--display); color: #17865e; }
+.pasos-gee li b { color: var(--ink); }
+.url { font: 500 20px/1.3 var(--mono); color: #17865e; word-break: break-all; }
+
+/* portada general */
+.slide.portada { padding-top: 84px; justify-content: space-between; }
+.portada h1 { font-size: 112px; }
+.portada .sub { font-size: 30px; line-height: 1.35; color: var(--ink-2); max-width: 1000px; }
+.portada .who { display: flex; gap: 56px; font-size: 21px; color: var(--ink-2); }
+.portada .who b { display: block; font-family: var(--display); font-size: 25px; color: var(--ink); margin-bottom: 4px; }
+.logos {
+  margin: 0 -96px; padding: 18px 96px; background: #fff;
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
+}
+.logos .grupo { display: flex; align-items: center; gap: 34px; }
+.logos .grupo + .grupo { border-left: 1px solid var(--rule); padding-left: 40px; }
+.logos img { width: auto; display: block; }
+.logos .etq { font: 500 13px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); max-width: 90px; }
+
+/* recursos */
+.recursos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; flex: 1; min-height: 0; }
+.recursos h3 { font-size: 25px; border-top: 1.5px solid var(--ink); padding-top: 12px; }
+.recursos ul { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.recursos li { font-size: 21px; line-height: 1.35; color: var(--ink-2); }
+.recursos li b { color: var(--ink); font-weight: 600; }
+.recursos a {
+  display: block; margin-top: 3px; font: 500 17px/1.3 var(--mono); color: var(--water);
+  text-decoration: none; word-break: break-all;
+}
+.recursos a:hover, .recursos a:focus-visible { text-decoration: underline; outline: none; }
+.biblio li { font-size: 20px; }
+.biblio em { color: inherit; font-style: italic; font-weight: 400; }
+.enlaces-ref { display: block; margin-top: 2px; font: 500 15px/1.4 var(--mono); }
+.enlaces-ref a { color: var(--water); text-decoration: none; }
+.enlaces-ref a:hover, .enlaces-ref a:focus-visible { text-decoration: underline; outline: none; }
+.logos .grupo { gap: 44px; }
+
+/* ndvi2gif */
+.modulos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.modulo-ficha { background: var(--panel); border-radius: 4px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
+.modulo-ficha h3 { font-size: 24px; }
+.modulo-ficha ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.modulo-ficha li { font-size: 19px; line-height: 1.35; color: var(--ink-2); padding-left: 16px; position: relative; }
+.modulo-ficha li::before { content: ""; position: absolute; left: 0; top: .6em; width: 8px; height: 2px; background: #17865e; }
+.modulo-ficha code, .flujo code { font-size: .85em; }
+.flujo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font: 500 18px/1.2 var(--mono); }
+.flujo span { background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 10px 14px; color: var(--ink); }
+.flujo span.fin { background: #17865e; border-color: #17865e; color: #fff; }
+.flujo i { font-style: normal; color: var(--muted); }
+.galeria { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
+.galeria figure { min-height: 0; overflow: hidden; border-radius: 4px; position: relative; background: #0e1512; }
+.galeria img { width: 100%; height: 100%; max-height: none; object-fit: cover; }
+.galeria figcaption {
+  position: absolute; left: 0; bottom: 0; padding: 6px 12px; background: rgba(14, 21, 18, .72);
+  color: #e4ebe5; font: 400 15px/1.3 var(--mono); border-top-right-radius: 4px;
+}
+.eslogan { font: 700 30px/1.25 var(--display); color: var(--ink); letter-spacing: -.01em; }
+.part .banner { width: 720px; max-width: 100%; border-radius: 4px; margin-top: 8px; }
+
+/* notas del ponente (tecla N) */
+.notas { display: none; }
+.notes-panel {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; max-height: 34vh; overflow: auto;
+  background: #0f1814; color: #dfe7e1; font: 400 17px/1.5 var(--body);
+  padding: 18px 22px; border-radius: 8px; z-index: 20; display: none;
+}
+.notes-panel.open { display: block; }
+
+.hint {
+  position: fixed; right: 16px; top: 12px; font: 400 12px/1 var(--mono); color: var(--muted);
+  opacity: .8; z-index: 10;
+}
+button.nav {
+  position: fixed; top: 0; bottom: 0; width: 12vw; background: transparent; border: 0; cursor: pointer; z-index: 4;
+}
+button.nav:focus-visible { outline: 3px solid var(--water); outline-offset: -6px; }
+button.prev { left: 0; } button.next { right: 0; }
+
+/* SVG */
+svg text { font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="hint">← → navegar · O orden del día · F pantalla completa</div>
+<button class="nav prev" id="nav-prev" aria-label="Diapositiva anterior"></button>
+<button class="nav next" id="nav-next" aria-label="Diapositiva siguiente"></button>
+
+<div class="deck" id="deck">
+<div class="stage" id="stage">
+
+<!-- =============================================================== 1 -->
+<section class="slide portada" data-title="Portada">
+  <div class="title-block" style="display: flex; flex-direction: column; gap: 26px;">
+    <div class="eyebrow"><span>Curso avanzado de SIG en ecología</span><span>14–18 de septiembre de 2026</span></div>
+    <h1>El tiempo,<br>del SIG a la nube</h1>
+    <p class="sub">Series temporales en SIG y teledetección, GeoLibre, Python, Google Earth Engine y ndvi2gif.</p>
+    <div class="who">
+      <div><b>Diego García Díaz · David Aragonés</b>Laboratorio de SIG y Teledetección (LAST-EBD)</div>
+      <div><b>Estación Biológica de Doñana</b>CSIC · Sevilla</div>
+    </div>
+  </div>
+  <div class="logos" role="group" aria-label="Instituciones y herramientas">
+    <div class="grupo">
+      <img src="img/logos/ebd.png" alt="Estación Biológica de Doñana" style="height: 110px;">
+      <img src="img/logos/csic.png" alt="CSIC" style="height: 78px;">
+      <img src="img/logos/last.png" alt="LAST-EBD, Laboratorio de SIG y Teledetección" style="height: 84px;">
+    </div>
+    <div class="grupo">
+      <img src="img/logos/python.png" alt="Python" style="height: 92px;">
+      <img src="img/logos/gee.png" alt="Google Earth Engine" style="height: 96px;">
+      <img src="img/logos/ndvi2gif.png" alt="ndvi2gif" style="height: 108px; border-radius: 50%;">
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== cronograma -->
+<section class="slide" data-title="Cronograma">
+  <div class="eyebrow"><span>Curso avanzado de SIG en ecología</span><span>Cronograma</span></div>
+  <h2 style="font-size: 50px;">Miércoles, teoría; jueves y viernes, práctica</h2>
+  <div class="crono" role="table" aria-label="Cronograma del curso de lunes a viernes">
+    <div></div><div class="dia">lunes</div><div class="dia">martes</div><div class="dia">miércoles</div><div class="dia">jueves</div><div class="dia">viernes</div>
+
+    <div class="hora" style="grid-row: 2; grid-column: 1;">9:00</div>
+    <div class="hora" style="grid-row: 3; grid-column: 1;">9:55</div>
+    <div class="pausa" style="grid-row: 4;">desayuno · 10:45</div>
+    <div class="hora" style="grid-row: 5; grid-column: 1;">11:15</div>
+    <div class="hora" style="grid-row: 6; grid-column: 1;">12:10</div>
+    <div class="pausa" style="grid-row: 7;">descanso · 13:00</div>
+    <div class="hora" style="grid-row: 8; grid-column: 1;">13:15</div>
+    <div class="hora" style="grid-row: 9; grid-column: 1;">14:10</div>
+
+    <!-- lunes -->
+    <div class="c visto" style="grid-row: 2; grid-column: 2;">Conceptos básicos y recursos</div>
+    <div class="c visto" style="grid-row: 3; grid-column: 2;">QGIS refresh</div>
+    <div class="c visto" style="grid-row: 5; grid-column: 2;">Proyecciones en España</div>
+    <div class="c visto" style="grid-row: 6; grid-column: 2;">P1 · Cruce ráster-vector</div>
+    <div class="c visto" style="grid-row: 8; grid-column: 2;">P2 · Superposición y reclasificación</div>
+    <div class="c visto" style="grid-row: 9; grid-column: 2;">P3 · Figuras tipo mapa</div>
+    <!-- martes -->
+    <div class="c visto" style="grid-row: 2 / 4; grid-column: 3;">Modelos digitales del terreno</div>
+    <div class="c visto sig" style="grid-row: 5; grid-column: 3;"></div>
+    <div class="c visto" style="grid-row: 6; grid-column: 3;">Semi-Automatic Classification</div>
+    <div class="c visto sig" style="grid-row: 8 / 10; grid-column: 3;"></div>
+    <!-- miércoles -->
+    <div class="c visto" style="grid-row: 2; grid-column: 4;">Interpolación y geoestadística</div>
+    <div class="c visto" style="grid-row: 3; grid-column: 4;">Análisis del paisaje</div>
+    <div class="c visto sig" style="grid-row: 5; grid-column: 4;"></div>
+    <div class="c mio t-series" style="grid-row: 6; grid-column: 4;">Teoría · series temporales en SIG y teledetección</div>
+    <div class="c mio t-geolibre" style="grid-row: 8; grid-column: 4;">Teoría · GeoLibre</div>
+    <div class="c mio t-gee" style="grid-row: 9; grid-column: 4;">Teoría · Earth Engine, tu cuenta y ndvi2gif</div>
+    <!-- jueves -->
+    <div class="c mio t-practica" style="grid-row: 2 / 4; grid-column: 5;">Prácticas · GeoLibre, QGIS y Python</div>
+    <div class="c mio t-practica sig-mio" style="grid-row: 5 / 7; grid-column: 5;"></div>
+    <div class="c mio t-practica sig-mio" style="grid-row: 8 / 10; grid-column: 5;"></div>
+    <!-- viernes -->
+    <div class="c mio t-gee" style="grid-row: 2 / 4; grid-column: 6;">Prácticas · Earth Engine y ndvi2gif</div>
+    <div class="c mio t-gee sig-mio" style="grid-row: 5; grid-column: 6;"></div>
+    <div class="c mio t-cimas" style="grid-row: 6; grid-column: 6;">Ejercicio final · ¿reverdecen las cumbres?</div>
+    <div class="c mio t-cimas sig-mio" style="grid-row: 8 / 10; grid-column: 6;"></div>
+  </div>
+  <div class="crono-leyenda">
+    <span style="--c: #e4e8e1;">Ya visto</span>
+    <span style="--c: var(--water);">Series temporales</span>
+    <span style="--c: #1c5cab;">GeoLibre</span>
+    <span style="--c: #17865e;">Earth Engine y ndvi2gif</span>
+    <span style="--c: #2f5d50;">Prácticas</span>
+    <span style="--c: #c2531f;">Ejercicio final</span>
+  </div>
+</section>
+
+<!-- =============================================================== orden del día -->
+<section class="slide agenda" id="s-orden" data-title="Orden del día">
+  <div class="eyebrow"><span>Miércoles</span><span>Teoría</span></div>
+  <h2>Orden del día</h2>
+  <ol class="orden">
+    <li><a href="#s-series"><span class="n">1</span><span><span class="t">Series temporales en SIG y teledetección</span><span class="d">Cómo guarda el tiempo un SIG · objetos que se mueven · píxeles que cambian</span></span><span class="ir">ir →</span></a></li>
+    <li><a href="#s-geolibre"><span class="n">2</span><span><span class="t">GeoLibre</span><span class="d">Un SIG en el navegador: formatos nube, Control de tiempo y SQL espacial</span></span><span class="ir">ir →</span></a></li>
+    <li><a href="#s-gee"><span class="n">3</span><span><span class="t">Google Earth Engine y tu cuenta</span><span class="d">Qué es, cómo trabaja y los cinco pasos para tenerla lista el jueves</span></span><span class="ir">ir →</span></a></li>
+    <li><a href="#s-ndvi2gif"><span class="n">4</span><span><span class="t">ndvi2gif</span><span class="d">Composites estacionales, series temporales e hidroperiodo sobre Earth Engine</span></span><span class="ir">ir →</span></a></li>
+    <li class="despues"><a href="#s-practicas"><span class="n">5</span><span><span class="t">Lo que viene</span><span class="d">Prácticas de jueves y viernes</span></span><span class="ir">ir →</span></a></li>
+    <li class="despues"><a href="#s-recursos"><span class="n">6</span><span><span class="t">Bibliografía y recursos</span><span class="d">Referencias, documentación y cursos en línea</span></span><span class="ir">ir →</span></a></li>
+  </ol>
+  <p class="small muted">Pulsa un punto para ir a su sección · tecla <strong>O</strong> para volver aquí desde cualquier diapositiva.</p>
+</section>
+
+<!-- =============================================================== apertura de series temporales -->
+<section class="slide cover" id="s-series" data-title="Series temporales">
+  <svg class="cover-art" viewBox="0 0 520 520" aria-hidden="true">
+    <!-- 26 fechas de inundación reales, 2019-2020, como anillos: radio = superficie en la marisma -->
+    <g fill="none" stroke-width="2">
+      <circle cx="260" cy="260" r="36"  stroke="#cde2fb"/>
+      <circle cx="260" cy="260" r="34"  stroke="#cde2fb"/>
+      <circle cx="260" cy="260" r="46"  stroke="#b7d3f6"/>
+      <circle cx="260" cy="260" r="58"  stroke="#b7d3f6"/>
+      <circle cx="260" cy="260" r="120" stroke="#6da7ec"/>
+      <circle cx="260" cy="260" r="236" stroke="#256abf" stroke-width="3"/>
+      <circle cx="260" cy="260" r="222" stroke="#2a78d6"/>
+      <circle cx="260" cy="260" r="210" stroke="#3987e5"/>
+      <circle cx="260" cy="260" r="170" stroke="#5598e7"/>
+      <circle cx="260" cy="260" r="186" stroke="#5598e7"/>
+      <circle cx="260" cy="260" r="198" stroke="#3987e5"/>
+      <circle cx="260" cy="260" r="100" stroke="#86b6ef"/>
+      <circle cx="260" cy="260" r="64"  stroke="#9ec5f4"/>
+    </g>
+    <circle cx="260" cy="24" r="7" fill="#9a6a12"/>
+    <text x="276" y="30" font-size="14" fill="#88908a">2 feb 2020 · 9.963 ha</text>
+  </svg>
+  <div class="title-block">
+    <div class="eyebrow"><span>Parte 1</span><span>Series temporales en SIG y teledetección</span></div>
+    <h1>La marisma<br>en el tiempo</h1>
+    <p class="sub">Series temporales con SIG y teledetección: de las trayectorias GPS a los composites de satélite, con Doñana como laboratorio.</p>
+  </div>
+  <div class="who">
+    <div><b>Diego García Díaz</b>Estación Biológica de Doñana · CSIC</div>
+    <div><b>Datos</b>Protocolo v2 de inundación (Landsat) · GPS de aves simulados</div>
+  </div>
+</section>
+
+<!-- =============================================================== 2 -->
+<section class="slide" data-title="La marisma es una película">
+  <div class="eyebrow"><span>Punto de partida</span></div>
+  <h2>Un mapa es una foto. La marisma es una película.</h2>
+  <div class="cols c-7-5">
+    <figure class="fill">
+      <img src="img/serie_inundacion_2019_2020.png" alt="Superficie inundada en la marisma y en las balsas de Veta la Palma, septiembre 2019 a agosto 2020">
+      <figcaption>26 escenas Landsat 7/8 · máscaras del Protocolo v2 · ciclo hidrológico 1 sep 2019 – 31 ago 2020</figcaption>
+    </figure>
+    <div class="stack center-v">
+      <div class="stat"><b class="num">&lt; 500 ha</b><span>de agua en la marisma todo el otoño de 2019</span></div>
+      <div class="stat"><b class="num">9.963 ha</b><span>el 2 de febrero de 2020, tras las lluvias</span></div>
+      <div class="stat"><b class="num">≈ 2.000 ha</b><span>constantes en las balsas de Veta la Palma: el refugio cuando la marisma se seca</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 3 -->
+<section class="slide" data-title="Cómo guarda el tiempo un SIG">
+  <div class="eyebrow"><span>Conceptos</span><span>Modelos de datos</span></div>
+  <h2>Cinco maneras de guardar el tiempo en un SIG</h2>
+  <div class="models">
+    <div class="model">
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <rect x="30" y="50" width="120" height="56" fill="#cde2fb" stroke="#256abf"/>
+        <rect x="55" y="32" width="120" height="56" fill="#b7d3f6" stroke="#256abf"/>
+        <rect x="80" y="14" width="120" height="56" fill="#86b6ef" stroke="#256abf"/>
+      </svg>
+      <h3>Instantáneas</h3>
+      <p>Una capa por fecha. Simple y universal, pero el tiempo vive en el nombre del archivo.</p>
+      <div class="ex">20200202l8oli…_flood.tif</div>
+    </div>
+    <div class="model">
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <line x1="10" y1="92" x2="230" y2="92" stroke="#88908a"/>
+        <rect x="20" y="70" width="70" height="14" fill="#86b6ef"/>
+        <rect x="92" y="70" width="40" height="14" fill="#256abf"/>
+        <rect x="134" y="70" width="90" height="14" fill="#b7d3f6"/>
+        <text x="20" y="112" font-size="12" fill="#88908a">fecha_ini</text>
+        <text x="160" y="112" font-size="12" fill="#88908a">fecha_fin</text>
+        <path d="M40 58 q20 -40 50 -20 t60 -10 t50 10" fill="none" stroke="#256abf" stroke-width="2"/>
+      </svg>
+      <h3>Periodo de validez</h3>
+      <p>Cada entidad dice desde cuándo y hasta cuándo es cierta. Permite filtrar "lo que había en t".</p>
+      <div class="ex">inundacion_2019_2020</div>
+    </div>
+    <div class="model">
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <g fill="#14201b"><circle cx="40" cy="80" r="5"/><circle cx="90" cy="40" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="200" cy="30" r="5"/></g>
+        <g font-size="12" fill="#88908a"><text x="26" y="102">t₁</text><text x="80" y="26">t₂</text><text x="130" y="94">t₃</text><text x="190" y="18">t₄</text></g>
+      </svg>
+      <h3>Eventos</h3>
+      <p>Algo ocurre en un lugar y un instante: un avistamiento, un incendio, un fix GPS.</p>
+      <div class="ex">punto + timestamp</div>
+    </div>
+    <div class="model">
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <polyline points="30,90 70,60 90,80 140,40 180,55 215,20" fill="none" stroke="#eb6834" stroke-width="2.5"/>
+        <g fill="#eb6834" stroke="#f7f8f4" stroke-width="2"><circle cx="30" cy="90" r="6"/><circle cx="70" cy="60" r="6"/><circle cx="90" cy="80" r="6"/><circle cx="140" cy="40" r="6"/><circle cx="180" cy="55" r="6"/><circle cx="215" cy="20" r="6"/></g>
+      </svg>
+      <h3>Trayectorias</h3>
+      <p>Eventos del mismo objeto ordenados en el tiempo. Aparecen el paso, la velocidad y el giro.</p>
+      <div class="ex">id_ave + orden temporal</div>
+    </div>
+    <div class="model">
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <g fill="none" stroke="#14201b" stroke-width="1.2">
+          <path d="M60 30 h100 v60 h-100 z"/><path d="M60 30 l40 -20 h100 l-40 20"/><path d="M160 90 l40 -20 v-60"/>
+          <path d="M93 30 v60 M127 30 v60 M60 50 h100 M60 70 h100"/>
+        </g>
+        <rect x="94" y="51" width="32" height="18" fill="#1baf7a"/>
+        <text x="206" y="100" font-size="12" fill="#88908a">t</text>
+      </svg>
+      <h3>Cubo espacio-tiempo</h3>
+      <p>Celdas x·y·t con un valor: la base de los datacubes y de los hot spots emergentes.</p>
+      <div class="ex">xarray · Emerging Hot Spot</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 4 -->
+<section class="slide" data-title="Resolución temporal">
+  <div class="eyebrow"><span>Conceptos</span><span>Escala</span></div>
+  <h2>La frecuencia de muestreo decide qué fenómeno puedes ver</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <table class="data">
+        <thead><tr><th>Fuente</th><th>Paso típico</th></tr></thead>
+        <tbody>
+          <tr><td>GPS de un ave</td><td class="mono">5 min – 2 h</td></tr>
+          <tr><td>Sentinel-2 (A+B)</td><td class="mono">5 días</td></tr>
+          <tr><td>Landsat 8 + 9</td><td class="mono">8 días</td></tr>
+          <tr><td>Landsat en solitario</td><td class="mono">16 días</td></tr>
+          <tr><td>Serie Protocolo v2</td><td class="mono">1984 – 2024</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Y el fenómeno tiene sus propios relojes: <strong>diario</strong> (dormidero/comedero), <strong>estacional</strong> (invernada, cría), <strong>ciclo hidrológico</strong> (1 sep – 31 ago) e <strong>interanual</strong> (sequías).</p>
+    </div>
+    <figure>
+      <img src="img/ansar_ciclo_diario.png" alt="Porcentaje de fixes de ánsar dentro del agua por hora local">
+      <figcaption>Ánsar común · % de fixes dentro del agua por hora local (oct 2019 – feb 2020)</figcaption>
+      <div class="callout">Con <b>un fix al día a las 13:00</b>, los ánsares casi nunca estarían en el agua. Con uno a las 03:00, casi siempre. Ninguna de las dos respuestas es la real.</div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 5 -->
+<section class="slide part" data-title="Parte I · Vector">
+  <div class="eyebrow"><span>Parte I</span><span>Vector</span></div>
+  <h2>Objetos que se mueven</h2>
+  <p>Fixes GPS, trayectorias, paradas, encuentros y la unión espacio-temporal con la inundación.</p>
+</section>
+
+<!-- =============================================================== 6 -->
+<section class="slide" data-title="Anatomía de un fix">
+  <div class="eyebrow"><span>Vector</span><span>Datos de movimiento</span></div>
+  <h2>Anatomía de un fix</h2>
+  <div class="fixrow">
+    <div><div class="k">id_ave</div><div class="v">ANS01</div></div>
+    <div><div class="k">timestamp (UTC)</div><div class="v">2020-01-03T06:02:28Z</div></div>
+    <div><div class="k">hora local</div><div class="v">07:02:28</div></div>
+    <div><div class="k">lon · lat</div><div class="v">-6.2464 · 36.9382</div></div>
+    <div><div class="k">hdop</div><div class="v">2.5</div></div>
+    <div><div class="k">n_sat</div><div class="v">8</div></div>
+    <div><div class="k">bateria_v</div><div class="v">3.89</div></div>
+  </div>
+  <div class="cols c-2">
+    <div class="stack">
+      <h3>Quién, cuándo, dónde… y con qué calidad</h3>
+      <ul class="plain">
+        <li><strong>El identificador</strong> separa trayectorias: nunca calcules pasos mezclando individuos.</li>
+        <li><strong>La hora siempre en UTC</strong> y una columna local para los análisis de ritmo diario. El cambio de hora de octubre y marzo existe.</li>
+        <li><strong>HDOP y nº de satélites</strong> describen la geometría del fix: HDOP alto y pocos satélites significan una posición sospechosa.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Nuestro conjunto de datos</h3>
+      <p><strong class="num">45.544 fixes</strong> de 12 aves simuladas cuyo comportamiento responde a la inundación <em>real</em> de cada fecha:</p>
+      <ul class="plain">
+        <li><span class="sp" style="background:var(--flamenco)"></span><strong>Flamenco común</strong> · FLA01–04 · cada 2 h · todo el ciclo</li>
+        <li><span class="sp" style="background:var(--ansar)"></span><strong>Ánsar común</strong> · ANS01–04 · cada hora · invernante</li>
+        <li><span class="sp" style="background:var(--espatula)"></span><strong>Espátula común</strong> · ESP01–04 · cada hora · reproductora</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 7 -->
+<section class="slide" data-title="De puntos a trayectorias">
+  <div class="eyebrow"><span>Vector</span><span>Trayectorias</span></div>
+  <h2>De puntos a trayectorias: todo se calcula por pares consecutivos</h2>
+  <div class="cols c-7-5">
+    <svg class="diagram" viewBox="60 120 820 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Esquema de una trayectoria con distancia, intervalo, rumbo y ángulo de giro">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#88908a"/></marker>
+      </defs>
+      <line x1="70" y1="470" x2="70" y2="390" stroke="#88908a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="62" y="372" font-size="16" fill="#88908a">N</text>
+      <text x="600" y="512" font-size="15" fill="#88908a" text-anchor="end" transform="translate(210 0)">esquema con valores de ejemplo</text>
+      <polyline points="120,430 330,330 450,400 640,170 780,230" fill="none" stroke="#eb6834" stroke-width="3"/>
+      <line x1="450" y1="400" x2="570" y2="470" stroke="#88908a" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <path d="M 510 435 A 70 70 0 0 0 494 342" fill="none" stroke="#9a6a12" stroke-width="2.5"/>
+      <text x="522" y="385" font-size="18" fill="#9a6a12">giro</text>
+      <path d="M 330 270 A 60 60 0 0 1 384 302" fill="none" stroke="#256abf" stroke-width="2.5"/>
+      <line x1="330" y1="330" x2="330" y2="250" stroke="#256abf" stroke-width="1.5" stroke-dasharray="4 5"/>
+      <text x="350" y="262" font-size="18" fill="#256abf">rumbo</text>
+      <g fill="#eb6834" stroke="#f7f8f4" stroke-width="3">
+        <circle cx="120" cy="430" r="11"/><circle cx="330" cy="330" r="11"/><circle cx="450" cy="400" r="11"/><circle cx="640" cy="170" r="11"/><circle cx="780" cy="230" r="11"/>
+      </g>
+      <g font-size="17" fill="#14201b">
+        <text x="96" y="470">t₀ 06:01</text><text x="300" y="370">t₁ 07:02</text><text x="430" y="440">t₂ 08:00</text><text x="620" y="140">t₃ 09:01</text><text x="756" y="270">t₄ 10:02</text>
+      </g>
+      <g font-size="17" fill="#4f5c55">
+        <text x="120" y="300">d = 1,4 km</text>
+        <text x="120" y="322">Δt = 61 min</text>
+        <text x="120" y="344">v = 1,4 km/h</text>
+        <text x="610" y="330">d = 18 km</text>
+        <text x="610" y="352">Δt = 61 min</text>
+        <text x="610" y="374" fill="#14201b" font-weight="500">v = 17,7 km/h</text>
+        <text x="610" y="396" fill="#14201b" font-weight="500">→ vuelo</text>
+      </g>
+    </svg>
+    <div class="stack center-v">
+      <table class="data">
+        <thead><tr><th>Métrica del paso</th><th>Para qué</th></tr></thead>
+        <tbody>
+          <tr><td>Distancia</td><td>Actividad, esfuerzo, vuelos</td></tr>
+          <tr><td>Δt</td><td>Detectar huecos y ritmos irregulares</td></tr>
+          <tr><td>Velocidad</td><td>Estados de comportamiento, errores</td></tr>
+          <tr><td>Rumbo</td><td>Direccionalidad, migración</td></tr>
+          <tr><td>Ángulo de giro</td><td>Búsqueda frente a desplazamiento</td></tr>
+        </tbody>
+      </table>
+      <p class="small">En SQL es una <strong>función de ventana</strong>: <code>LAG(geom) OVER (PARTITION BY id_ave ORDER BY timestamp)</code>. Las distancias, siempre en una proyección métrica (EPSG:25829).</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 8 -->
+<section class="slide" data-title="Limpiar antes de analizar">
+  <div class="eyebrow"><span>Vector</span><span>Calidad</span></div>
+  <h2>Una velocidad alta no siempre es un error</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <svg viewBox="0 0 700 300" role="img" aria-label="Un pico de ida y vuelta frente a un vuelo real">
+        <g stroke="#88908a" stroke-width="1.5" fill="none"><polyline points="40,230 120,210 200,235 280,215"/><polyline points="420,240 500,225 660,70 690,60"/></g>
+        <g stroke="#d03b3b" stroke-width="2.5" fill="none"><polyline points="200,235 240,40 280,215"/></g>
+        <g fill="#14201b"><circle cx="40" cy="230" r="6"/><circle cx="120" cy="210" r="6"/><circle cx="200" cy="235" r="6"/><circle cx="280" cy="215" r="6"/><circle cx="420" cy="240" r="6"/><circle cx="500" cy="225" r="6"/><circle cx="660" cy="70" r="6"/><circle cx="690" cy="60" r="6"/></g>
+        <circle cx="240" cy="40" r="8" fill="#d03b3b"/>
+        <text x="40" y="285" font-size="17" fill="#14201b">Pico: rápido al llegar y al salir</text>
+        <text x="420" y="285" font-size="17" fill="#14201b">Vuelo: rápido una vez y se queda</text>
+        <text x="258" y="46" font-size="15" fill="#d03b3b">error</text>
+      </svg>
+      <ul class="plain">
+        <li><strong>Huecos:</strong> FLA02 no transmite del 9 al 14 de diciembre. Un hueco no es una parada.</li>
+        <li><strong>Picos:</strong> velocidad de entrada <em>y</em> de salida altas, con giro de casi 180°.</li>
+        <li><strong>HDOP alto:</strong> geometría de satélites pobre, a menudo con 3–4 satélites.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Lo que pasa con nuestros 68 errores simulados</h3>
+      <table class="data">
+        <thead><tr><th>Regla</th><th class="num">Marcados</th><th class="num">Errores reales</th></tr></thead>
+        <tbody>
+          <tr><td>velocidad &gt; 80 km/h</td><td class="num">61</td><td class="num">30</td></tr>
+          <tr><td>pico ida y vuelta &gt; 60 km/h</td><td class="num">33</td><td class="num">33</td></tr>
+          <tr><td>HDOP &gt; 5</td><td class="num">48</td><td class="num">35</td></tr>
+          <tr><td>pico <em>o</em> HDOP &gt; 5</td><td class="num">62</td><td class="num">49</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">El filtro de velocidad solo acierta la mitad: la otra mitad son <b>vuelos reales</b>, como el viaje de FLA03 a Fuente de Piedra o las llegadas de los ánsares. Y 19 errores pequeños no los detecta ninguna regla.</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 9 -->
+<section class="slide" data-title="Tres especies, tres relojes">
+  <div class="eyebrow"><span>Vector</span><span>Comportamiento</span></div>
+  <h2>Tres especies, tres maneras de usar la misma marisma</h2>
+  <figure class="fill">
+    <img src="img/trayectorias_tres_especies.png" alt="Trayectorias de un ánsar, una espátula y un flamenco sobre la inundación de su fecha">
+    <figcaption>Cada panel usa la máscara de agua vigente en su periodo: el fondo también cambia con el tiempo</figcaption>
+  </figure>
+</section>
+
+<!-- =============================================================== 10 -->
+<section class="slide" data-title="Paradas y encuentros">
+  <div class="eyebrow"><span>Vector</span><span>Patrones</span></div>
+  <h2>Paradas, encuentros y áreas que cambian de tamaño</h2>
+  <div class="cols c-2" style="grid-template-columns: repeat(3, 1fr); gap: 48px;">
+    <div class="stack">
+      <svg viewBox="0 0 400 200" aria-hidden="true">
+        <circle cx="200" cy="100" r="62" fill="#cde2fb" stroke="#256abf" stroke-dasharray="5 5"/>
+        <polyline points="20,170 90,140 160,110 190,95 210,108 195,90 214,96 205,112 240,70 310,50 385,30" fill="none" stroke="#1baf7a" stroke-width="2.5"/>
+        <g fill="#1baf7a" stroke="#f7f8f4" stroke-width="2"><circle cx="190" cy="95" r="6"/><circle cx="210" cy="108" r="6"/><circle cx="195" cy="90" r="6"/><circle cx="214" cy="96" r="6"/><circle cx="205" cy="112" r="6"/></g>
+        <text x="140" y="192" font-size="15" fill="#256abf">radio · duración</text>
+      </svg>
+      <h3>Paradas</h3>
+      <p class="small">Fixes consecutivos que no salen de un radio durante un tiempo mínimo: dormideros, colonias, comederos. <strong>Radio 300 m, 3 h</strong> no es lo mismo que <strong>1 km, 12 h</strong>.</p>
+    </div>
+    <div class="stack">
+      <svg viewBox="0 0 400 200" aria-hidden="true">
+        <polyline points="20,160 100,120 170,105 230,100 300,70 380,40" fill="none" stroke="#2a78d6" stroke-width="2.5"/>
+        <polyline points="30,40 110,70 175,95 235,112 310,150 380,175" fill="none" stroke="#5598e7" stroke-width="2.5" stroke-dasharray="7 5"/>
+        <line x1="172" y1="104" x2="176" y2="96" stroke="#9a6a12" stroke-width="3"/>
+        <line x1="229" y1="101" x2="234" y2="111" stroke="#9a6a12" stroke-width="3"/>
+        <text x="90" y="196" font-size="15" fill="#9a6a12">d &lt; 200 m · |Δt| &lt; 30 min</text>
+      </svg>
+      <h3>Encuentros</h3>
+      <p class="small">Pares de fixes cerca en el espacio <em>y</em> en el tiempo. Dos puntos a 50 m con tres días de diferencia no son un encuentro. ANS01 y ANS02 forman pareja.</p>
+    </div>
+    <div class="stack">
+      <svg viewBox="0 0 400 200" aria-hidden="true">
+        <polygon points="60,150 110,40 240,30 350,90 300,175 140,185" fill="#1baf7a" fill-opacity=".12" stroke="#1baf7a" stroke-width="2"/>
+        <polygon points="160,120 190,85 235,92 240,130 200,145" fill="#1baf7a" fill-opacity=".35" stroke="#1baf7a" stroke-width="2"/>
+        <text x="250" y="195" font-size="15" fill="#4f5c55">feb</text>
+        <text x="206" y="118" font-size="15" fill="#14201b">abr</text>
+      </svg>
+      <h3>Áreas por periodo</h3>
+      <p class="small">Un polígono mínimo convexo o un núcleo de densidad <strong>por individuo y mes</strong> convierte el área de campeo en una serie temporal. Cuidado: un solo error o un vuelo largo lo multiplican.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 11 -->
+<section class="slide" data-title="Unión espacio-temporal">
+  <div class="eyebrow"><span>Vector</span><span>La pregunta de hoy</span></div>
+  <h2>¿Estaba el ave en el agua? Solo si comparas con la inundación de ese día</h2>
+  <div class="cols c-4-8" style="gap: 40px;">
+    <div class="stack">
+      <svg viewBox="0 0 620 330" role="img" aria-label="Cada fix se une con el polígono de agua cuyo periodo de validez contiene su fecha">
+        <line x1="20" y1="230" x2="600" y2="230" stroke="#88908a" stroke-width="1.5"/>
+        <rect x="30"  y="200" width="150" height="22" fill="#b7d3f6"/>
+        <rect x="182" y="200" width="200" height="22" fill="#6da7ec"/>
+        <rect x="384" y="200" width="206" height="22" fill="#256abf"/>
+        <g font-size="14" fill="#4f5c55"><text x="30" y="258">2 feb</text><text x="182" y="258">10 feb</text><text x="384" y="258">18 feb</text></g>
+        <text x="30" y="190" font-size="14" fill="#88908a">máscaras: fecha_ini → fecha_fin</text>
+        <g stroke="#eb6834" stroke-width="2"><line x1="90" y1="80" x2="90" y2="198"/><line x1="250" y1="80" x2="250" y2="198"/><line x1="330" y1="80" x2="330" y2="198"/><line x1="470" y1="80" x2="470" y2="198"/></g>
+        <g fill="#eb6834" stroke="#f7f8f4" stroke-width="2.5"><circle cx="90" cy="70" r="9"/><circle cx="250" cy="70" r="9"/><circle cx="330" cy="70" r="9"/><circle cx="470" cy="70" r="9"/></g>
+        <text x="80" y="42" font-size="14" fill="#88908a">fixes GPS</text>
+        <text x="30" y="306" font-size="16" fill="#14201b">fecha del fix ∈ [fecha_ini, fecha_fin]  Y  el punto interseca el polígono</text>
+      </svg>
+      <p class="small">Es una unión espacial con una <strong>condición temporal</strong>. Sin ella, cada fix cruzaría con las 26 inundaciones a la vez.</p>
+    </div>
+<pre class="code"><span class="c">-- SQL Workspace de GeoLibre (DuckDB). Las fechas llegan en ms.</span>
+<span class="k">WITH</span> fechas <span class="k">AS</span> (
+  <span class="k">SELECT DISTINCT</span> fecha_ini <span class="k">FROM</span> inundacion_2019_2020),
+fix <span class="k">AS</span> (
+  <span class="k">SELECT</span> g.*, f.fecha_ini <span class="k">AS</span> fecha_mascara
+  <span class="k">FROM</span> gps_aves_2019_2020 g
+  <span class="k">ASOF JOIN</span> fechas f               <span class="c">-- la máscara anterior</span>
+    <span class="k">ON</span> g.timestamp >= f.fecha_ini)  <span class="c">-- más próxima</span>
+<span class="k">SELECT</span> nombre_comun,
+  strftime(epoch_ms(timestamp), <span class="s">'%Y-%m'</span>) <span class="k">AS</span> mes,
+  round(<span class="s">100</span> * avg((i.id <span class="k">IS NOT NULL</span>)::INT), <span class="s">1</span>) <span class="k">AS</span> pct_agua
+<span class="k">FROM</span> fix <span class="k">LEFT JOIN</span> inundacion_2019_2020 i
+  <span class="k">ON</span> i.fecha_ini = fix.fecha_mascara
+ <span class="k">AND</span> ST_Intersects(fix.geom, i.geom)
+<span class="k">GROUP BY ALL ORDER BY</span> <span class="s">1</span>, <span class="s">2</span>;</pre>
+  </div>
+</section>
+
+<!-- =============================================================== 12 -->
+<section class="slide" data-title="Resultado de la unión">
+  <div class="eyebrow"><span>Vector</span><span>Resultado</span></div>
+  <h2>El uso del agua sigue a la inundación… y al calendario de cada especie</h2>
+  <div class="cols c-7-5">
+    <figure class="fill">
+      <img src="img/pct_en_agua_por_mes.png" alt="Porcentaje mensual de fixes dentro del agua por especie">
+      <figcaption>% de fixes dentro de un polígono de agua vigente · por mes local</figcaption>
+    </figure>
+    <div class="stack center-v">
+      <p><span class="sp" style="background:var(--espatula)"></span><strong>Espátulas:</strong> del 84 % en febrero al 19 % en marzo. La colonia está en seco y pasan en ella la mitad del tiempo.</p>
+      <p><span class="sp" style="background:var(--flamenco)"></span><strong>Flamencos:</strong> del 80 % al 59 % en abril y mayo, cuando se dispersan por la marisma. En verano vuelven a las balsas.</p>
+      <p><span class="sp" style="background:var(--ansar)"></span><strong>Ánsares:</strong> un 50 % estable que no existe: es la media de un 92 % de noche y un 2 % de día (diapositiva 4).</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 13 -->
+<section class="slide" data-title="Herramientas vectoriales">
+  <div class="eyebrow"><span>Vector</span><span>Herramientas</span></div>
+  <h2>Con qué se hace</h2>
+  <div class="stack">
+    <div class="tool">
+      <div><h3>GeoLibre</h3><div class="ver">3.0 · Qiusheng Wu</div></div>
+      <p><strong>Time Slider</strong> con ventana o acumulado sobre cualquier campo de fecha · <strong>Movement &amp; time</strong>: velocidad de trayectoria, paradas y proximidad espacio-temporal · <strong>Emerging Hot Spot</strong> y densidad de núcleo · <strong>SQL Workspace</strong> con DuckDB Spatial, sin instalar nada.</p>
+    </div>
+    <div class="tool">
+      <div><h3>QGIS · Temporal Controller</h3><div class="ver">nativo desde 3.14</div></div>
+      <p>Animación de capas vectoriales y ráster con un campo de fecha o de inicio/fin; exporta fotogramas para vídeo. El heredero de TimeManager.</p>
+    </div>
+    <div class="tool">
+      <div><h3>QGIS · Trajectools</h3><div class="ver">2.7 · Anita Graser · requiere MovingPandas ≥ 0.22</div></div>
+      <p>MovingPandas dentro de Processing: crear trayectorias, añadir métricas, dividir por huecos, detectar paradas, generalizar, suavizar con filtro de Kalman y recortar en el tiempo.</p>
+    </div>
+    <div class="tool">
+      <div><h3>QGIS · Animation Workbench</h3><div class="ver">1.4 · Kartoza · requiere ffmpeg</div></div>
+      <p>No filtra por fechas: <strong>mueve la cámara</strong> de entidad en entidad (modos Planar, Sphere, Static) y exporta GIF o MP4. Con una capa ordenada en el tiempo cuenta la historia de una trayectoria. Expresiones con <code>@hover_feature</code>, <code>@current_hover_frame</code>…</p>
+    </div>
+    <div class="tool">
+      <div><h3>Código</h3><div class="ver">Python · R</div></div>
+      <p><code>movingpandas</code>, <code>scikit-mobility</code> en Python · <code>amt</code>, <code>move2</code>, <code>ctmm</code> en R · Movebank para datos de animales.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 14 -->
+<section class="slide part" data-title="Parte II · Ráster">
+  <div class="eyebrow"><span>Parte II</span><span>Ráster y teledetección</span></div>
+  <h2>Píxeles que cambian</h2>
+  <p>Huecos y nubes, composites, tendencias, fenología e hidroperiodo.</p>
+</section>
+
+<!-- =============================================================== 15 -->
+<section class="slide" data-title="Huecos y relleno temporal">
+  <div class="eyebrow"><span>Ráster</span><span>Series irregulares</span></div>
+  <h2>Una serie de satélite nunca es regular</h2>
+  <div class="cols c-7-5">
+    <div class="stack">
+      <figure>
+        <img src="img/relleno_temporal.png" alt="Porcentaje de píxeles de la marisma rellenados en cada fecha por nubes o bandeado de Landsat 7">
+        <figcaption>% de píxeles de la marisma sin dato válido en cada escena, rellenados después</figcaption>
+      </figure>
+      <ul class="plain">
+        <li><strong>Nubes y sombras</strong>: varían escena a escena (hasta un 21 % el 29 mar 2020).</li>
+        <li><strong>Bandeado SLC-off</strong>: Landsat 7 pierde ~22 % de cada escena desde 2003.</li>
+        <li><strong>Revisita irregular</strong>: 56 días sin ninguna imagen útil en primavera.</li>
+      </ul>
+    </div>
+    <div class="stack center-v">
+      <div class="callout"><b>Lo que hemos hecho con las máscaras de hoy:</b> cada píxel nublado o sin dato toma el valor de la <b>fecha válida más próxima</b> en el tiempo.</div>
+      <p class="small">Es simple y transparente, pero asume que el agua no cambió entre ambas fechas. Alternativas: interpolación lineal, ajuste armónico, suavizado de Savitzky-Golay o, mejor aún, <strong>no rellenar y agregar en composites</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 16 -->
+<!-- =============================================================== el tiempo en color -->
+<section class="slide" data-title="El tiempo en color">
+  <div class="eyebrow"><span>Ráster</span><span>Leer el tiempo en una imagen</span></div>
+  <h2>Tres estaciones, tres canales: el color dice cuándo verdea cada píxel</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <p>Cada canal RGB guarda el <strong>NDVI de una estación</strong>. El color no es el aspecto del terreno: es <strong>su calendario</strong>.</p>
+      <table class="data compacta">
+        <thead><tr><th>Color</th><th>NDVI alto en…</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sp" style="background:#e11"></span>Rojo</td><td>invierno</td></tr>
+          <tr><td><span class="sp" style="background:#1b1"></span>Verde</td><td>primavera</td></tr>
+          <tr><td><span class="sp" style="background:#22e"></span>Azul</td><td>verano</td></tr>
+          <tr><td><span class="sp" style="background:#ee1"></span>Amarillo</td><td>invierno y primavera</td></tr>
+          <tr><td><span class="sp" style="background:#1ee"></span>Cian</td><td>primavera y verano</td></tr>
+          <tr><td><span class="sp" style="background:#e1e"></span>Fucsia</td><td>invierno y verano</td></tr>
+          <tr><td><span class="sp" style="background:#fff;box-shadow:inset 0 0 0 1px #c4cac2"></span>Blanco</td><td>todo el año · <span class="muted">negro: nunca</span></td></tr>
+        </tbody>
+      </table>
+      <p class="small">Es la idea de ndvi2gif: <strong>una imagen por año, una banda por periodo</strong>.</p>
+    </div>
+    <figure class="fill" style="align-items: center;">
+      <img src="img/tiempo_en_color.png" alt="Composite de NDVI con invierno en rojo, primavera en verde y verano en azul, con su leyenda de colores" style="width: auto; max-width: 100%; height: 540px; max-height: 540px;">
+    </figure>
+  </div>
+</section>
+
+<section class="slide" data-title="Composites temporales">
+  <div class="eyebrow"><span>Ráster</span><span>Composites</span></div>
+  <h2>Composites: reducir una colección a periodos comparables</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <p>Agrupas todas las imágenes de un periodo y aplicas un <strong>reductor por píxel</strong>. Así las nubes y los huecos se diluyen y todos los años tienen las mismas fechas.</p>
+      <table class="data">
+        <thead><tr><th>Reductor</th><th>Útil para</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">max · p90</td><td>Pico de vegetación, evitar nubes (NDVI)</td></tr>
+          <tr><td class="mono">median</td><td>Estado típico, robusto a valores raros</td></tr>
+          <tr><td class="mono">std · cv · range</td><td>Cuánto varía el píxel dentro del periodo</td></tr>
+          <tr><td class="mono">count</td><td>Cuántas observaciones hay: la calidad</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <figure>
+        <img src="img/donana_texted.gif" alt="Animación de composites estacionales de NDVI sobre Doñana generada con ndvi2gif" style="max-height: 300px;">
+        <figcaption>ndvi2gif · composites estacionales en color: cada canal RGB es una estación</figcaption>
+      </figure>
+<pre class="code"><span class="k">from</span> ndvi2gif <span class="k">import</span> NdviSeasonality
+
+ndvi = NdviSeasonality(roi=<span class="s">'marisma.shp'</span>, sat=<span class="s">'S2'</span>,
+    periods=<span class="s">12</span>, start_year=<span class="s">2018</span>, end_year=<span class="s">2024</span>,
+    key=<span class="s">'percentile'</span>, percentile=<span class="s">85</span>, index=<span class="s">'ndvi'</span>)
+ndvi.get_gif(name=<span class="s">'ndvi_marisma.gif'</span>)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 17 -->
+<section class="slide" data-title="Tendencias y fenología">
+  <div class="eyebrow"><span>Ráster</span><span>Tendencias y fenología</span></div>
+  <h2>¿Cambia a largo plazo? ¿Cuándo empieza y acaba la estación?</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <table class="data">
+        <thead><tr><th>Método</th><th>Responde a</th></tr></thead>
+        <tbody>
+          <tr><td>Mann-Kendall</td><td>¿Hay tendencia monótona? No paramétrico, tolera valores extremos</td></tr>
+          <tr><td>Pendiente de Sen</td><td>¿Cuánto cambia por año? Mediana de todas las pendientes</td></tr>
+          <tr><td>SOS · POS · EOS</td><td>Inicio, pico y final de la estación de crecimiento</td></tr>
+          <tr><td>Anomalía</td><td>¿Este ciclo es raro frente a la media histórica?</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <figure>
+        <img src="img/rice_phenology_threshold.png" alt="Métricas fenológicas de un arrozal de Isla Mayor por el método del umbral" style="max-height: 270px;">
+        <figcaption>Fenología de arrozal en Isla Mayor · método del umbral · ndvi2gif</figcaption>
+      </figure>
+<pre class="code"><span class="k">from</span> ndvi2gif.timeseries <span class="k">import</span> TimeSeriesAnalyzer
+
+ts = TimeSeriesAnalyzer(ndvi)
+df = ts.extract_time_series(point=(<span class="s">-6.19</span>, <span class="s">37.14</span>))
+ts.analyze_trend(df=df, method=<span class="s">'all'</span>)
+ts.plot_phenology_analysis(point=(<span class="s">-6.19</span>, <span class="s">37.14</span>),
+                           method=<span class="s">'threshold'</span>)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 18 -->
+<section class="slide" data-title="Hidroperiodo">
+  <div class="eyebrow"><span>Ráster</span><span>Hidroperiodo</span></div>
+  <h2>Hidroperiodo: toda la película en un solo mapa</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <p>Número de días que cada píxel estuvo inundado en el ciclo hidrológico, ponderando cada escena por el tiempo que representa.</p>
+      <ul class="plain small">
+        <li>Resume las 26 máscaras de 2019-2020 en <strong>una capa</strong>.</li>
+        <li>Pierde el <strong>cuándo</strong>: 90 días en invierno no son 90 en primavera.</li>
+        <li>Con 40 ciclos (1984–2024) permite <strong>anomalías</strong> y tendencias.</li>
+      </ul>
+<pre class="code"><span class="k">from</span> ndvi2gif <span class="k">import</span> HydroperiodAnalyzer
+
+ha = HydroperiodAnalyzer(ns)  <span class="c"># ns: NdviSeasonality</span>
+hyd = ha.compute_hydroperiod(index=<span class="s">'mndwi'</span>, hyd_year=<span class="s">2019</span>)</pre>
+    </div>
+    <figure class="fill">
+      <img src="img/hidroperiodo_2019_2020.png" alt="Mapa de hidroperiodo 2019-2020 de la marisma de Doñana" style="max-height: 520px;">
+      <figcaption>Protocolo v2 · hidroperiodo 2019-2020 · recintos de marisma y balsas de Veta la Palma</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== GeoLibre · separador -->
+<section class="slide part" id="s-geolibre" data-title="GeoLibre">
+  <div class="eyebrow"><span>Práctica</span><span>GeoLibre</span></div>
+  <h2>Un SIG que cabe en el navegador</h2>
+  <p>GeoLibre, de Qiusheng Wu: lo que usaremos hoy y lo que conviene saber antes de empezar.</p>
+</section>
+
+<!-- =============================================================== GeoLibre · qué es -->
+<section class="slide" data-title="Qué es GeoLibre">
+  <div class="eyebrow"><span>GeoLibre</span><span>Qué es</span></div>
+  <h2>Nada que instalar, y los datos no salen de tu equipo</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <ul class="plain">
+        <li><strong>Código abierto</strong> (MIT), de Qiusheng Wu, autor de geemap y leafmap. Versión 3.0, septiembre de 2026.</li>
+        <li>El mismo programa en <strong>navegador</strong>, escritorio, móvil y Jupyter.</li>
+        <li><strong>Todo se ejecuta en tu navegador</strong>: DuckDB para leer y consultar datos, WebAssembly para más de 1.000 herramientas de geoproceso (Whitebox).</li>
+        <li>Pensado para <strong>formatos nativos de la nube</strong>: se leen por partes y a distancia, sin descargar el archivo completo.</li>
+      </ul>
+      <div class="callout"><b>Hoy:</b> Control de tiempo, herramientas de <b>Movimiento y tiempo</b> y el <b>Espacio de trabajo SQL</b>.</div>
+    </div>
+    <div class="stack">
+      <h3>Por qué GeoParquet y no GeoJSON</h3>
+      <div class="formatos">
+        <div class="formato"><div class="peso num">19,6 <small>MB</small></div><p><code>gps_aves_2019_2020.geojson</code> · texto, se lee entero</p></div>
+        <div class="formato"><div class="peso num" style="color: var(--water);">1,8 <small>MB</small></div><p><code>gps_aves_2019_2020.parquet</code> · columnar y comprimido</p></div>
+        <div class="formato"><div class="peso num">5,5 <small>MB</small></div><p><code>inundacion_2019_2020.geojson</code></p></div>
+        <div class="formato"><div class="peso num" style="color: var(--water);">1,2 <small>MB</small></div><p><code>inundacion_2019_2020.parquet</code></p></div>
+      </div>
+      <p class="small">La familia nube: <strong>GeoParquet</strong> (vector), <strong>COG</strong> (ráster), <strong>PMTiles</strong> (teselas), <strong>Zarr</strong> (cubos).</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== GeoLibre · menús -->
+<section class="slide" data-title="GeoLibre en cuatro menús">
+  <div class="eyebrow"><span>GeoLibre</span><span>Dónde está cada cosa</span></div>
+  <h2>El ejercicio en cuatro rutas de menú</h2>
+  <div class="cols c-7-5">
+    <div class="stack">
+      <table class="data">
+        <thead><tr><th>Para</th><th>Ruta</th></tr></thead>
+        <tbody>
+          <tr><td>Cargar los datos</td><td class="menu-ruta"><b>Añadir datos</b> → Capa vectorial</td></tr>
+          <tr><td>Animar en el tiempo</td><td class="menu-ruta"><b>Complementos</b> → Control de tiempo → Activar</td></tr>
+          <tr><td>Trayectorias, paradas, encuentros</td><td class="menu-ruta"><b>Procesamiento</b> → Caja de herramientas de GeoLibre → Vectorial → Movimiento y tiempo</td></tr>
+          <tr><td>Consultas espacio-temporales</td><td class="menu-ruta"><b>Procesamiento</b> → Espacio de trabajo SQL</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <h3>Tres avisos que ahorran tiempo</h3>
+      <ul class="plain">
+        <li><strong>Las fechas llegan en milisegundos</strong> desde 1970. En SQL: <code>epoch_ms(timestamp)</code>.</li>
+        <li><strong>Una sentencia SQL por ejecución.</strong> Las vistas (<code>CREATE VIEW</code>) sí se conservan entre ejecuciones.</li>
+        <li><strong>Si recargas la pestaña pierdes capas y vistas.</strong> Guarda el proyecto al acabar cada bloque.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · separador -->
+<section class="slide part" id="s-gee" data-title="Google Earth Engine">
+  <div class="eyebrow"><span>Teoría</span><span>Google Earth Engine</span></div>
+  <h2>El laboratorio está en la nube</h2>
+  <p>Qué es Earth Engine, cómo trabaja y cómo dejar tu cuenta lista antes del jueves.</p>
+</section>
+
+<!-- =============================================================== GEE · qué es -->
+<section class="slide" data-title="Qué es Earth Engine">
+  <div class="eyebrow"><span>Earth Engine</span><span>Qué es</span></div>
+  <h2>Tú escribes la receta; los servidores de Google cocinan</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <ul class="plain">
+        <li><strong>Catálogo público</strong> de varios petabytes, ya preparado: Landsat desde los 80, Sentinel-1/2/3, MODIS, clima (ERA5, CHIRPS), MDT…</li>
+        <li><strong>Cómputo en servidor.</strong> No descargas imágenes: describes operaciones y Earth Engine las ejecuta sobre todo el archivo.</li>
+        <li><strong>Evaluación diferida.</strong> Nada se calcula hasta que pides un resultado: un número (<code>getInfo</code>), una capa en el mapa o una exportación a Drive.</li>
+        <li><strong>Dos lenguajes:</strong> JavaScript en el Code Editor y <strong>Python</strong> en Colab o Jupyter, con <code>geemap</code> y <code>ndvi2gif</code> por encima.</li>
+      </ul>
+    </div>
+    <div class="stack">
+<pre class="code"><span class="k">import</span> ee
+ee.Initialize(project=<span class="s">'tu-id-de-proyecto'</span>)
+
+<span class="c"># Solo se describe la operación: no viaja nada</span>
+ndvi = (ee.ImageCollection(<span class="s">'COPERNICUS/S2_SR_HARMONIZED'</span>)
+        .filterDate(<span class="s">'2020-02-01'</span>, <span class="s">'2020-02-29'</span>)
+        .map(<span class="k">lambda</span> i: i.normalizedDifference([<span class="s">'B8'</span>, <span class="s">'B4'</span>]))
+        .median())
+
+<span class="c"># getInfo(): ahora sí calcula el servidor</span>
+p = ee.Geometry.Point(<span class="s">-6.40</span>, <span class="s">36.98</span>)
+ndvi.reduceRegion(ee.Reducer.mean(), p, <span class="s">10</span>).getInfo()</pre>
+      <div class="callout"><b>Cada cálculo va a tu cuenta:</b> cada persona necesita un <b>proyecto de Google Cloud registrado</b>. Para docencia e investigación es gratuito.</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · pasos -->
+<section class="slide" data-title="Cuenta en cinco pasos">
+  <div class="eyebrow"><span>Earth Engine</span><span>Tu cuenta · ≈ 15 min · antes del jueves</span></div>
+  <h2>Tu cuenta en cinco pasos</h2>
+  <div class="cols c-7-5">
+    <ol class="pasos-gee">
+      <li><span><b>Una cuenta de Google.</b> Mejor la institucional si tu centro usa Google, como el CSIC. Cierra las demás cuentas del navegador o usa un perfil aparte.</span></li>
+      <li><span><b>Un proyecto de Cloud registrado</b> para uso <b>no comercial</b>, desde <span class="url">console.cloud.google.com/earth-engine</span></span></li>
+      <li><span><b>La API de Earth Engine activada</b> en ese proyecto.</span></li>
+      <li><span><b>Saber cuánto cómputo tienes:</b> los proyectos nuevos empiezan con 150 EECU-horas al mes.</span></li>
+      <li><span><b>Comprobarlo en Google Colab</b> con dos líneas de Python.</span></li>
+    </ol>
+    <div class="stack center-v">
+      <div class="callout"><b>El error nº 1:</b> tener varias cuentas de Google abiertas. Cualquier paso puede caer en la cuenta equivocada sin avisar.</div>
+      <div class="callout"><b>El error nº 2:</b> confundir el <b>nombre</b> del proyecto con su <b>ID</b>. En <code>ee.Initialize()</code> va el ID.</div>
+      <p class="small">Guía completa con capturas: <code>cuenta-earth-engine.pdf</code></p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · registro -->
+<section class="slide" data-title="Registrar el proyecto">
+  <div class="eyebrow"><span>Earth Engine</span><span>Paso 2</span></div>
+  <h2>Registrar el proyecto: el formulario decide si es no comercial</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <ul class="plain">
+        <li>Empieza en <span class="url">console.cloud.google.com/earth-engine</span>: crea el proyecto y lo registra de una vez.</li>
+        <li>Nombre reconocible (<code>sigavanzado-tunombre</code>) y acepta el ID que propone Google.</li>
+        <li>Organización: <strong>institución académica</strong>. Las ayudas de investigación no cuentan como pago.</li>
+        <li>No envíes hasta que el recuadro final diga que <strong>cumples los requisitos</strong>.</li>
+      </ul>
+    </div>
+    <figure class="captura">
+      <img src="img/gee/register-noncommercial.png" alt="Paso del formulario de registro de Earth Engine que decide el uso no comercial">
+      <figcaption>El paso del cuestionario que decide: institución, financiación y objetivo</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · ID y API -->
+<section class="slide" data-title="ID del proyecto y API">
+  <div class="eyebrow"><span>Earth Engine</span><span>Pasos 2 y 3</span></div>
+  <h2>El ID no es el nombre, y la API tiene que estar encendida</h2>
+  <div class="cols c-2">
+    <figure class="captura">
+      <img src="img/gee/project-id.png" alt="Selector de proyectos de Google Cloud con nombre e ID del proyecto">
+      <figcaption>Selector de proyectos: nombre visible a un lado, <strong>ID</strong> al otro. El ID va en minúsculas, con guiones y a menudo con dígitos al final</figcaption>
+    </figure>
+    <figure class="captura">
+      <img src="img/gee/enable-api.png" alt="Página de la API de Earth Engine en la biblioteca de APIs de Google Cloud">
+      <figcaption>Biblioteca de APIs → Earth Engine API. Si el botón dice <strong>Manage</strong>, ya está activada</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · cuota -->
+<section class="slide" data-title="Cuánto cómputo tienes">
+  <div class="eyebrow"><span>Earth Engine</span><span>Paso 4</span></div>
+  <h2>Cuánto cómputo tienes cada mes</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <table class="data">
+        <thead><tr><th>Nivel</th><th class="num">EECU-h/mes</th><th>Condición</th></tr></thead>
+        <tbody>
+          <tr><td>Community</td><td class="num">150</td><td>Donde empieza todo proyecto nuevo. Sobra para el curso</td></tr>
+          <tr><td>Contributor</td><td class="num">1.000</td><td>Gratis, con cuenta de facturación asociada (no se cobra)</td></tr>
+          <tr><td>Partner</td><td class="num">100.000</td><td>Por solicitud y revisión, semanas</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Si se agota, <strong>no te quedas fuera</strong>: todo sigue funcionando, pero más lento, hasta el día 1 del mes siguiente.</p>
+    </div>
+    <figure class="captura">
+      <img src="img/gee/tier.png" alt="Pantalla de gestión del nivel de cómputo de Earth Engine">
+      <figcaption>Earth Engine › Configuration › Manage tier</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · Colab -->
+<section class="slide" data-title="Comprobar en Colab">
+  <div class="eyebrow"><span>Earth Engine</span><span>Paso 5</span></div>
+  <h2>La prueba de que todo funciona: dos celdas en Colab</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+<pre class="code"><span class="c"># Celda 1 · autenticar e inicializar</span>
+<span class="k">import</span> ee
+ee.Authenticate()
+ee.Initialize(project=<span class="s">'tu-id-de-proyecto'</span>)</pre>
+<pre class="code"><span class="c"># Celda 2 · pedir un dato real al servidor</span>
+print(ee.Image(<span class="s">'USGS/SRTMGL1_003'</span>)
+      .get(<span class="s">'system:id'</span>).getInfo())
+<span class="c"># USGS/SRTMGL1_003</span></pre>
+      <ul class="plain small">
+        <li><strong>Usa Chrome, Edge o Brave</strong> para autenticarte. En Firefox la página del código puede cerrarse sin mostrarlo.</li>
+        <li>Pega el código de autorización <strong>entero y enseguida</strong>: es de un solo uso y caduca.</li>
+      </ul>
+    </div>
+    <figure class="captura">
+      <img src="img/gee/generate-token.png" alt="Autenticador de cuadernos de Earth Engine con la cuenta y el proyecto">
+      <figcaption>El autenticador confirma con qué cuenta y sobre qué proyecto se genera el permiso</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== GEE · errores -->
+<section class="slide" data-title="Cuando no funciona">
+  <div class="eyebrow"><span>Earth Engine</span><span>Problemas frecuentes</span></div>
+  <h2>Cuando no funciona</h2>
+  <table class="data">
+    <thead><tr><th>Mensaje o síntoma</th><th>Causa probable y solución</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">That authorization code is invalid or has expired</td><td>Código incompleto, caducado o ya usado. Vuelve a ejecutar <code>ee.Authenticate()</code> y copia uno nuevo</td></tr>
+      <tr><td>Google no llega a enseñar ningún código</td><td>Navegador que no es Chromium (Firefox, Safari). Repite en Chrome, Edge o Brave</td></tr>
+      <tr><td class="mono">Earth Engine client library not initialized</td><td>Falta <code>ee.Initialize()</code> o se ejecutó sin <code>project=</code></td></tr>
+      <tr><td class="mono">Not signed up · project is not registered</td><td>El proyecto existe pero no terminó el registro: vuelve al paso 2</td></tr>
+      <tr><td class="mono">Earth Engine API has not been used in project…</td><td>API apagada: paso 3 (el mensaje trae el enlace para activarla)</td></tr>
+      <tr><td>Autentica bien pero falla al inicializar</td><td>Casi siempre has puesto el <strong>nombre</strong> del proyecto en vez del <strong>ID</strong></td></tr>
+      <tr><td>Todo va lentísimo</td><td>Cuota del mes agotada: modo restringido hasta el día 1 (paso 4)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- =============================================================== ndvi2gif · separador -->
+<section class="slide part" id="s-ndvi2gif" data-title="ndvi2gif">
+  <div class="eyebrow"><span>Teoría</span><span>ndvi2gif</span></div>
+  <h2>Composites estacionales con Google Earth Engine</h2>
+  <p>Una librería de Python de código abierto para ver el tiempo en una imagen.</p>
+  <img class="banner" src="img/ndvi2gif/banner_ndvi2gif.jpg" alt="Banner de ndvi2gif con los colores de una vidriera">
+</section>
+
+<!-- =============================================================== ndvi2gif · orígenes -->
+<section class="slide" data-title="ndvi2gif · orígenes">
+  <div class="eyebrow"><span>ndvi2gif</span><span>El principio</span></div>
+  <h2>El concurso y la convergencia (2020)</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <p>Tres cosas coincidieron:</p>
+      <ul class="plain">
+        <li><strong>Python.</strong> Años programando y ganas de convertirlo en una librería.</li>
+        <li><strong>Google Earth Engine en auge</strong> y la moda de los GIF de NDVI de países y continentes.</li>
+        <li><strong>Una idea de Javier Bustamante</strong> en su curso de series temporales: <em>para ver el tiempo en una imagen, asigna a cada banda una fecha</em>.</li>
+      </ul>
+      <div style="display: flex; gap: 18px; align-items: flex-end;">
+        <figure>
+          <img src="img/ndvi2gif/concurso_esa_10k.jpg" alt="Cartel del concurso de los 10.000 seguidores de la ESA" style="height: 150px; width: auto; border-radius: 4px;">
+        </figure>
+        <figure>
+          <img src="img/ndvi2gif/twitter_degradacion.png" alt="Evolución del logo de Twitter de 2006 a 2023 hasta un águila con esvástica en 2025" style="height: 220px; width: auto; border-radius: 4px;">
+        </figure>
+      </div>
+    </div>
+    <div class="stack">
+      <figure>
+        <img src="img/ndvi2gif/tuit_2020.gif" alt="Tuit de 2020 con el GIF de NDVI de Los Palacios y una foto" style="height: 380px; width: auto; border-radius: 4px; background: #fff;">
+      </figure>
+      <figure>
+        <img src="img/ndvi2gif/africa_ndvi.gif" alt="GIF de NDVI estacional de África" style="height: 220px; width: auto;">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · la idea -->
+<section class="slide" data-title="ndvi2gif · la idea">
+  <div class="eyebrow"><span>ndvi2gif</span><span>La idea</span></div>
+  <h2>Una imagen por año, una banda por periodo</h2>
+  <div class="cols c-7-5">
+    <figure class="fill">
+      <img src="img/ndvi2gif/esquema_bandas.png" alt="Esquema en dos niveles: de las escenas de cada periodo a una banda, y de varios años a un estadístico por periodo" style="height: 560px; max-height: 560px; width: auto; max-width: 100%; background: #fff; border-radius: 4px;">
+    </figure>
+    <div class="stack center-v">
+      <div class="callout"><b>Nivel 1.</b> Todas las escenas de un periodo del año se reducen a una banda: el máximo, la mediana o un percentil.</div>
+      <div class="callout"><b>Nivel 2.</b> Con varios años, cada periodo se resume otra vez: el invierno medio de toda la serie, por ejemplo.</div>
+      <p>Unido a las colecciones de GEE, da consultas directas: la <strong>inundación máxima de invierno en la marisma por décadas</strong> o <strong>en qué época del año cada embalse alcanza su pico de clorofila</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · galería -->
+<section class="slide" data-title="ndvi2gif · galería">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Composites</span></div>
+  <h2>El calendario de cada píxel, en color</h2>
+  <div class="galeria">
+    <figure><img src="img/ndvi2gif/composite_los_palacios.gif" alt="GIF de composites estacionales en Los Palacios y Villafranca"><figcaption>Los Palacios y Villafranca (Sevilla)</figcaption></figure>
+    <figure><img src="img/ndvi2gif/composite_tubarjal.gif" alt="GIF de composites estacionales de regadíos circulares en Tubarjal"><figcaption>Tubarjal (Arabia Saudí)</figcaption></figure>
+    <figure><img src="img/ndvi2gif/composite_africa.jpg" alt="Composite estacional de NDVI de África"><figcaption>África</figcaption></figure>
+    <figure><img src="img/ndvi2gif/composite_parcelas.jpg" alt="Composite estacional de inundación: arrozales en verde y marisma en rojo"><figcaption>Arrozal</figcaption></figure>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · vidriera -->
+<section class="slide" data-title="ndvi2gif · la vidriera">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Colonia, 2025</span></div>
+  <h2>De una vidriera a una librería</h2>
+  <div class="cols c-5-7">
+    <div class="stack center-v">
+      <ul class="plain">
+        <li>La librería creció a trompicones, como proyecto personal: en 2020 solo existía <code>NdviSeasonality</code>.</li>
+        <li>Primavera de 2025, catedral de Colonia: la vidriera de <strong>Gerhard Richter</strong> se parece muchísimo a un composite estacional.</li>
+        <li>A la vuelta llegaron los módulos de radar, clasificación y series temporales. Después, fenología espacial e hidroperiodo.</li>
+      </ul>
+      <img src="img/ndvi2gif/banner_ndvi2gif.jpg" alt="Banner de ndvi2gif" style="width: 100%; border-radius: 4px;">
+    </div>
+    <figure class="fill" style="align-items: center;">
+      <img src="img/ndvi2gif/vidriera_richter.jpg" alt="Vidriera de Gerhard Richter en la catedral de Colonia" style="height: 600px; max-height: 600px; width: auto; border-radius: 4px;">
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · podio -->
+<section class="slide" data-title="ndvi2gif · modestia">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Sin complejos</span></div>
+  <h2>El código, la modestia y la humildad</h2>
+  <figure class="fill" style="align-items: center;">
+    <img src="img/ndvi2gif/podio.jpg" alt="Podio humorístico: primero Qiusheng Wu, segundo ndvi2gif, tercero Landsat y Sentinel peleando" style="height: 620px; max-height: 620px; width: auto; border-radius: 6px;">
+  </figure>
+</section>
+
+<!-- =============================================================== ndvi2gif · arquitectura -->
+<section class="slide" data-title="ndvi2gif · arquitectura">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Cómo está organizada</span></div>
+  <h2>Una clase central y cinco módulos que la reutilizan</h2>
+  <div class="cols c-5-7">
+    <div class="stack center-v">
+      <table class="data">
+        <thead><tr><th>Clase</th><th>Para qué</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">NdviSeasonality</td><td>Composites por periodos: la pieza de la que cuelga todo</td></tr>
+          <tr><td class="mono">S1ARDProcessor</td><td>Sentinel-1 listo para analizar</td></tr>
+          <tr><td class="mono">LandCoverClassifier</td><td>Clasificación con métricas estacionales</td></tr>
+          <tr><td class="mono">TimeSeriesAnalyzer</td><td>Tendencias y fenología</td></tr>
+          <tr><td class="mono">HydroperiodAnalyzer</td><td>Días de inundación al año</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Todo se calcula en los servidores de Earth Engine. <code>pip install ndvi2gif</code> · <code>conda install -c conda-forge ndvi2gif</code></p>
+    </div>
+    <figure class="fill" style="align-items: center;">
+      <img src="img/ndvi2gif/flujo_joss.png" alt="Diagrama de flujo de ndvi2gif publicado en JOSS" style="height: 540px; max-height: 540px; width: auto; background: #fff; border-radius: 4px;">
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · NdviSeasonality -->
+<section class="slide" data-title="ndvi2gif · NdviSeasonality">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Clase 1 de 5 · el origen</span></div>
+  <h2><code style="font-size: .9em;">NdviSeasonality</code>: composites temporales en el servidor</h2>
+  <div class="modulos">
+    <div class="modulo-ficha">
+      <h3>Sensores y datos</h3>
+      <ul>
+        <li>Sentinel-1, 2 y 3 · Landsat 4–9 · MODIS</li>
+        <li>Clima: ERA5-Land y CHIRPS</li>
+        <li>Bandas estandarizadas (Blue… Swir2) y reflectancia 0–1</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Índices y periodos</h3>
+      <ul>
+        <li>Hasta 45 índices en Sentinel-2: vegetación, agua, fuego, nieve, SAR…</li>
+        <li>4 estaciones · 12 meses · 24 quincenas · o N periodos a medida</li>
+        <li>ROI: geometría, shapefile, GeoJSON, tesela WRS/MGRS o ID de DEIMS</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Reductor por periodo</h3>
+      <ul>
+        <li><code>max</code> pico de verdor · <code>median</code> robusto</li>
+        <li><code>mean</code> · <code>sum</code> acumulados (lluvia) · <code>percentile</code> a medida</li>
+        <li><code>std</code> · <code>cv</code> · <code>range</code> dispersión · <code>count</code> nº de observaciones</li>
+      </ul>
+    </div>
+  </div>
+  <figure style="align-items: flex-start;">
+    <img src="img/ndvi2gif/codigo_ndviseasonality.png" alt="Captura de código con NdviSeasonality sobre la marisma" style="height: 250px; width: auto; border-radius: 4px;">
+  </figure>
+</section>
+
+<!-- =============================================================== ndvi2gif · S1ARD -->
+<section class="slide" data-title="ndvi2gif · S1ARDProcessor">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Clase 2 de 5 · preprocesado radar</span></div>
+  <h2><code style="font-size: .9em;">S1ARDProcessor</code>: Sentinel-1 listo para analizar</h2>
+  <p class="lead">El radar ve de noche y entre nubes… pero llega lleno de «sal y pimienta». Este módulo lo convierte en <strong>Analysis Ready Data</strong> dentro de GEE.</p>
+  <div class="modulos">
+    <div class="modulo-ficha">
+      <h3>Corrección del terreno</h3>
+      <ul>
+        <li>Aplanado radiométrico VOLUME / SURFACE</li>
+        <li>MDT: Copernicus 30/90 m · SRTM 30/90 m</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Cinco filtros de speckle</h3>
+      <ul>
+        <li>Refined Lee (por defecto) · Lee · Lee Sigma</li>
+        <li>Gamma MAP · Boxcar, con kernel configurable</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Salida</h3>
+      <ul>
+        <li>Lineal o decibelios</li>
+        <li>Se usa como un índice más: <code>vh</code> · <code>vv</code> · <code>rvi</code> · <code>vv_vh_ratio</code> · <code>dpsvi</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="flujo"><span>S1 GRD crudo</span><i>→</i><span>Aplanado del terreno</span><i>→</i><span>Filtro de speckle</span><i>→</i><span>Lineal / dB</span><i>→</i><span class="fin">Índice radar</span></div>
+</section>
+
+<!-- =============================================================== ndvi2gif · clasificación -->
+<section class="slide" data-title="ndvi2gif · LandCoverClassifier">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Clase 3 de 5 · clasificación</span></div>
+  <h2><code style="font-size: .9em;">LandCoverClassifier</code>: poniendo etiquetas</h2>
+  <p class="lead">Usa las métricas estacionales como <strong>variables multitemporales</strong>. La fenología separa cultivos, marisma y monte mejor que una sola imagen.</p>
+  <div class="modulos">
+    <div class="modulo-ficha">
+      <h3>Pila de variables</h3>
+      <ul>
+        <li>Índices de todos los periodos y años</li>
+        <li>Estadísticos interanuales: media, desviación, máximo, mínimo</li>
+        <li>Normalización a [0, 1]</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Supervisada</h3>
+      <ul>
+        <li>Random Forest (por defecto) · SVM · CART · Naive Bayes</li>
+        <li>Entrenamiento desde una FeatureCollection</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>No supervisada</h3>
+      <ul>
+        <li>K-means · Cascade K-means · LDA</li>
+        <li>Sin datos de entrenamiento: descubre patrones latentes</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout"><b>Validación incluida:</b> matriz de confusión · exactitud global y Kappa · exactitud de productor y de usuario por clase · importancia de variables.</div>
+</section>
+
+<!-- =============================================================== ndvi2gif · series -->
+<section class="slide" data-title="ndvi2gif · TimeSeriesAnalyzer">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Clase 4 de 5 · análisis temporal</span></div>
+  <h2><code style="font-size: .9em;">TimeSeriesAnalyzer</code>: leer el tiempo</h2>
+  <p class="lead">Extrae la serie de un punto o región y la <strong>interroga</strong>: ¿hay tendencia significativa? ¿cuándo verdea?</p>
+  <div class="modulos">
+    <div class="modulo-ficha">
+      <h3>Tendencias robustas</h3>
+      <ul>
+        <li>Test de Mann-Kendall (no paramétrico)</li>
+        <li>Pendiente de Sen</li>
+        <li>Significancia sin asumir normalidad</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Fenología</h3>
+      <ul>
+        <li>Inicio, pico y fin de la estación</li>
+        <li>Métodos: umbral · derivada · logístico</li>
+        <li>Amplitud, duración y tasas</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>En el espacio</h3>
+      <ul>
+        <li><code>SpatialTrendAnalyzer</code>: pendiente píxel a píxel</li>
+        <li><code>SpatialPhenologyAnalyzer</code>: rásteres de SOS/POS/EOS (umbral, derivada, armónico)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout"><b>Paneles en una llamada:</b> <code>plot_comprehensive_analysis()</code> y <code>plot_phenology_analysis()</code> generan serie y tendencia, patrón estacional, comparación interanual, autocorrelación, distribución y calidad del dato.</div>
+</section>
+
+<!-- =============================================================== ndvi2gif · hidroperiodo -->
+<section class="slide" data-title="ndvi2gif · HydroperiodAnalyzer">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Clase 5 de 5 · hidroperiodo</span></div>
+  <h2><code style="font-size: .9em;">HydroperiodAnalyzer</code>: cuántos días bajo el agua</h2>
+  <p class="lead">Días de inundación al año, píxel a píxel, íntegramente en GEE. Pensado para humedales como Doñana (desde la v1.2).</p>
+  <div class="modulos">
+    <div class="modulo-ficha">
+      <h3>Ponderación midpoint</h3>
+      <ul>
+        <li>Cada escena «pesa» los días hasta el punto medio con sus vecinas</li>
+        <li>Máscara de agua: <code>ndwi</code> · <code>mndwi</code> · <code>awei</code> · <code>aweinsh</code> · <code>wi2015</code></li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Ciclos hidrológicos</h3>
+      <ul>
+        <li>Empieza el 1 de septiembre (configurable)</li>
+        <li><code>compute_all_cycles()</code> y anomalías frente a la media</li>
+        <li>Máscaras de agua descargables (v1.4)</li>
+      </ul>
+    </div>
+    <div class="modulo-ficha">
+      <h3>Calidad del dato</h3>
+      <ul>
+        <li>IRT global (Gini) y por píxel (Simpson)</li>
+        <li>Bandas: <code>hydroperiod</code> · <code>valid_days</code> · <code>normalized</code> · <code>first_flood_doy</code> · <code>last_flood_doy</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout">Reutiliza una instancia de <code>NdviSeasonality</code>: hereda región, sensor, fechas y máscara de nubes. Metodología basada en <b>phydroperiod</b>.</div>
+</section>
+
+<!-- =============================================================== ndvi2gif · hidroperiodo figuras -->
+<section class="slide" data-title="ndvi2gif · hidroperiodo en imágenes">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Hidroperiodo</span></div>
+  <h2>Del reparto de días entre escenas al mapa</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <figure>
+        <img src="img/ndvi2gif/ponderacion_midpoint.png" alt="Esquema de la ponderación midpoint: cada escena representa los días hasta los puntos medios con las escenas vecinas" style="height: 360px; width: auto; max-width: 100%; background: #fff; border-radius: 4px;">
+      </figure>
+      <figure>
+        <img src="img/ndvi2gif/hidro_valid_days.jpg" alt="Mapas de días válidos e hidroperiodo" style="height: 210px; width: auto; max-width: 100%; border-radius: 4px;">
+      </figure>
+    </div>
+    <div class="stack">
+      <figure>
+        <img src="img/ndvi2gif/hidro_mapa.jpg" alt="Mapa de hidroperiodo" style="height: 320px; width: auto; max-width: 100%; border-radius: 4px;">
+      </figure>
+      <figure>
+        <img src="img/ndvi2gif/hidro_color.jpg" alt="Mapa de hidroperiodo en color" style="height: 250px; width: auto; max-width: 100%; border-radius: 4px;">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ndvi2gif · documentación -->
+<section class="slide enlaces" data-title="ndvi2gif · documentación">
+  <div class="eyebrow"><span>ndvi2gif</span><span>Para usarla</span></div>
+  <h2>Código abierto: de quien lo use</h2>
+  <div class="cols c-5-7">
+    <div class="stack center-v">
+      <p class="eslogan">La parte más potente de ndvi2gif no es un índice ni un módulo: es que es de todos.</p>
+      <div class="recursos" style="grid-template-columns: 1fr; gap: 0;">
+        <ul>
+          <li><b>Documentación y tutoriales</b><a href="https://digdgeo.github.io/Ndvi2Gif/" target="_blank" rel="noopener">digdgeo.github.io/Ndvi2Gif</a></li>
+          <li><b>Código</b><a href="https://github.com/Digdgeo/Ndvi2Gif" target="_blank" rel="noopener">github.com/Digdgeo/Ndvi2Gif</a></li>
+          <li><b>Artículo</b> · Journal of Open Source Software<a href="https://doi.org/10.21105/joss.10654" target="_blank" rel="noopener">doi.org/10.21105/joss.10654</a></li>
+        </ul>
+      </div>
+      <p class="small"><code>pip install ndvi2gif</code> · <code>conda install -c conda-forge ndvi2gif</code></p>
+    </div>
+    <figure class="fill" style="align-items: center;">
+      <img src="img/ndvi2gif/documentacion.png" alt="Portada de la documentación de ndvi2gif" style="height: 560px; max-height: 560px; width: auto; border-radius: 4px; border: 1px solid var(--rule);">
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 19 -->
+<section class="slide" id="s-practicas" data-title="El ejercicio">
+  <div class="eyebrow"><span>Práctica</span><span>≈ 2 h</span></div>
+  <h2>¿Cómo usan tres especies una marisma que se llena y se vacía?</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <table class="data">
+        <thead><tr><th>Bloque</th><th>Qué haréis</th><th class="num">min</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Explorar</td><td>Cargar datos, Time Slider sobre fixes e inundación</td><td class="num">20</td></tr>
+          <tr><td>2 · Trayectorias</td><td>Pasos, velocidades y limpieza de errores</td><td class="num">30</td></tr>
+          <tr><td>3 · Agua</td><td>Unión espacio-temporal con la inundación</td><td class="num">30</td></tr>
+          <tr><td>4 · Patrones</td><td>Paradas, encuentros, áreas por mes</td><td class="num">30</td></tr>
+          <tr><td>Puesta en común</td><td>Qué hemos visto y qué decisiones tomamos</td><td class="num">10</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <h3>Datos · carpeta <code>datos/</code></h3>
+      <ul class="plain">
+        <li><code>gps_aves_2019_2020</code> · 45.544 fixes (GeoParquet, GeoJSON, CSV, GPKG)</li>
+        <li><code>inundacion_2019_2020</code> · 3.460 polígonos de agua con <code>fecha_ini</code> y <code>fecha_fin</code></li>
+        <li><code>recintos_marisma</code> y <code>balsas_veta_la_palma</code></li>
+        <li><code>inundacion_por_recinto_2019_2020.csv</code> · tabla larga recinto × fecha</li>
+        <li><code>hidroperiodo_2019_2020_marisma.tif</code></li>
+      </ul>
+      <div class="callout"><b>GeoLibre:</b> web.geolibre.app, sin instalar. <b>Plan B:</b> QGIS 3.40 + Trajectools con el GeoPackage.</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 20 -->
+<section class="slide enlaces" id="s-recursos" data-title="Bibliografía">
+  <div class="eyebrow"><span>Para seguir</span><span>Bibliografía</span></div>
+  <h2>Bibliografía</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <h3>Teledetección y Earth Engine</h3>
+      <ul class="plain biblio">
+        <li>Gorelick, N. <em>et al.</em> (2017). Google Earth Engine: planetary-scale geospatial analysis for everyone. <em>Remote Sensing of Environment</em> 202: 18–27.</li>
+        <li>Wu, Q. (2020). geemap: a Python package for interactive mapping with Google Earth Engine. <em>Journal of Open Source Software</em> 5(51): 2305.</li>
+        <li>García Díaz, D. Ndvi2Gif: multi-seasonal remote sensing index composites. <em>Journal of Open Source Software</em>. doi:10.21105/joss.10654</li>
+        <li>Roy, D. P. <em>et al.</em> (2016). Characterization of Landsat-7 to Landsat-8 reflective wavelength and NDVI continuity. <em>Remote Sensing of Environment</em> 185: 57–70. <span class="enlaces-ref"><a href="https://doi.org/10.1016/j.rse.2015.12.024" target="_blank" rel="noopener">doi:10.1016/j.rse.2015.12.024</a> (acceso abierto)</span></li>
+        <li>Mann, H. B. (1945). Nonparametric tests against trend. <em>Econometrica</em> 13: 245–259 · Sen, P. K. (1968). <em>JASA</em> 63: 1379–1389.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Tiempo, movimiento y ecología</h3>
+      <ul class="plain biblio">
+        <li>Hägerstrand, T. (1970). What about people in regional science? <em>Papers of the Regional Science Association</em> 24: 7–21.</li>
+        <li>Graser, A. (2019). MovingPandas: efficient structures for movement data in Python. <em>GI_Forum</em> 7(1): 54–68.</li>
+        <li>Kays, R. <em>et al.</em> (2015). Terrestrial animal tracking as an eye on life and planet. <em>Science</em> 348: aaa2478.</li>
+        <li>Kranstauber, B. <em>et al.</em> move2: R package for processing movement data. <em>Methods in Ecology and Evolution</em>.</li>
+        <li>Wessely, J. <em>et al.</em> (2026). Rising plant extinction rates on European mountain summits. <em>Science</em>. <span class="enlaces-ref"><a href="https://doi.org/10.1126/science.aed2974" target="_blank" rel="noopener">doi:10.1126/science.aed2974</a> (acceso institucional) · <a href="https://www.univie.ac.at/en/news/press-room/press-releases/detail/rising-plant-extinction-rates-on-european-mountain-summits" target="_blank" rel="noopener">nota de prensa</a></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== recursos -->
+<section class="slide enlaces" data-title="Recursos y cursos">
+  <div class="eyebrow"><span>Para seguir</span><span>Recursos y cursos en línea</span></div>
+  <h2>Recursos y cursos gratuitos</h2>
+  <div class="recursos">
+    <div>
+      <h3>Earth Engine y Python</h3>
+      <ul>
+        <li><b>Guías oficiales de Earth Engine</b><a href="https://developers.google.com/earth-engine/guides" target="_blank" rel="noopener">developers.google.com/earth-engine/guides</a></li>
+        <li><b>Catálogo de datos</b><a href="https://developers.google.com/earth-engine/datasets" target="_blank" rel="noopener">developers.google.com/earth-engine/datasets</a></li>
+        <li><b>Libro EEFA</b> · Cloud-Based Remote Sensing with GEE, gratuito<a href="https://www.eefabook.org" target="_blank" rel="noopener">eefabook.org</a></li>
+        <li><b>geemap</b> · documentación y cuadernos<a href="https://geemap.org" target="_blank" rel="noopener">geemap.org</a></li>
+        <li><b>ndvi2gif</b> · documentación y tutoriales<a href="https://digdgeo.github.io/Ndvi2Gif/" target="_blank" rel="noopener">digdgeo.github.io/Ndvi2Gif</a></li>
+        <li><b>Awesome GEE</b> · recursos recopilados por Q. Wu<a href="https://github.com/giswqs/Awesome-GEE" target="_blank" rel="noopener">github.com/giswqs/Awesome-GEE</a></li>
+        <li><b>Qiusheng Wu en YouTube</b> · geemap, leafmap, GeoLibre<a href="https://www.youtube.com/@giswqs" target="_blank" rel="noopener">youtube.com/@giswqs</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>SIG, tiempo y movimiento</h3>
+      <ul>
+        <li><b>GeoLibre</b> · aplicación web y documentación<a href="https://web.geolibre.app" target="_blank" rel="noopener">web.geolibre.app</a><a href="https://opengeos.github.io/GeoLibre/" target="_blank" rel="noopener">opengeos.github.io/GeoLibre</a></li>
+        <li><b>MovingPandas</b> · tutoriales de trayectorias<a href="https://movingpandas.org" target="_blank" rel="noopener">movingpandas.org</a></li>
+        <li><b>DuckDB Spatial</b> · SQL espacial<a href="https://duckdb.org/docs/stable/core_extensions/spatial/overview" target="_blank" rel="noopener">duckdb.org/docs · spatial</a></li>
+        <li><b>Movebank</b> · datos de seguimiento animal<a href="https://www.movebank.org" target="_blank" rel="noopener">movebank.org</a></li>
+        <li><b>Manual de formación de QGIS</b><a href="https://docs.qgis.org/latest/es/docs/training_manual/" target="_blank" rel="noopener">docs.qgis.org · training manual</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Cursos gratuitos</h3>
+      <ul>
+        <li><b>Spatial Thoughts</b> · End-to-End Google Earth Engine<a href="https://courses.spatialthoughts.com/end-to-end-gee.html" target="_blank" rel="noopener">courses.spatialthoughts.com</a></li>
+        <li><b>Spatial Thoughts</b> · Python Foundation for Spatial Analysis<a href="https://courses.spatialthoughts.com/python-foundation.html" target="_blank" rel="noopener">courses.spatialthoughts.com</a></li>
+        <li><b>NASA ARSET</b> · formación en teledetección aplicada<a href="https://appliedsciences.nasa.gov/what-we-do/capacity-building/arset" target="_blank" rel="noopener">appliedsciences.nasa.gov · ARSET</a></li>
+        <li><b>Geocomputation with Python</b> · libro abierto<a href="https://py.geocompx.org" target="_blank" rel="noopener">py.geocompx.org</a></li>
+        <li><b>The Carpentries</b> · Python y datos geoespaciales<a href="https://carpentries-incubator.github.io/geospatial-python/" target="_blank" rel="noopener">carpentries-incubator.github.io</a></li>
+        <li><b>Earth Data Science</b> · Earth Lab, Univ. de Colorado<a href="https://www.earthdatascience.org" target="_blank" rel="noopener">earthdatascience.org</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+<div class="cycle" id="cycle" aria-hidden="true">
+  <div class="axis"></div><div class="done" id="done"></div><div class="mark" id="mark"></div>
+  <div class="count" id="count"></div>
+  <div class="months"><span>sep</span><span>oct</span><span>nov</span><span>dic</span><span>ene</span><span>feb</span><span>mar</span><span>abr</span><span>may</span><span>jun</span><span>jul</span><span>ago</span></div>
+</div>
+</div>
+<div class="notes-panel" id="notes" role="note"></div>
+
+<script>
+(function () {
+  const stage = document.getElementById('stage');
+  const deck = document.getElementById('deck');
+  const cycle = document.getElementById('cycle');
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const notes = document.getElementById('notes');
+  let i = 0;
+
+  // la barra de progreso vive dentro del escenario para escalar con él
+  stage.appendChild(cycle);
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.setProperty('--s', s);
+  }
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((el, k) => el.classList.toggle('is-active', k === i));
+    const p = slides.length > 1 ? i / (slides.length - 1) : 0;
+    document.getElementById('mark').style.left = (p * 100) + '%';
+    document.getElementById('done').style.width = (p * 100) + '%';
+    document.getElementById('count').textContent =
+      String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    deck.classList.toggle('on-dark', slides[i].classList.contains('part'));
+    document.body.classList.toggle('sin-nav',
+      slides[i].classList.contains('agenda') || slides[i].classList.contains('enlaces'));
+    const nota = slides[i].querySelector('.notas');
+    notes.textContent = nota ? nota.textContent : 'Sin notas en esta diapositiva.';
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+    document.title = 'El tiempo, del SIG a la nube · ' + (slides[i].dataset.title || (i + 1));
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key === 'n' || e.key === 'N') notes.classList.toggle('open');
+    else if (e.key === 'o' || e.key === 'O') {
+      const k = slides.findIndex((s) => s.id === 's-orden');
+      if (k >= 0) show(k);
+    }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+  document.getElementById('nav-prev').addEventListener('click', () => show(i - 1));
+  document.getElementById('nav-next').addEventListener('click', () => show(i + 1));
+
+  let x0 = null;
+  window.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  window.addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+    x0 = null;
+  });
+
+  // #12 → diapositiva 12 · #s-gee → sección con ese id
+  function desdeHash() {
+    const clave = decodeURIComponent(location.hash.slice(1));
+    const n = parseInt(clave, 10);
+    if (String(n) === clave) { show(n - 1); return; }
+    const k = slides.findIndex((s) => s.id === clave);
+    if (k >= 0) show(k);
+  }
+  window.addEventListener('hashchange', desdeHash);
+  window.addEventListener('resize', fit);
+  fit();
+  if (location.hash) desdeHash(); else show(0);
+})();
+</script>
+</body>
+</html>
