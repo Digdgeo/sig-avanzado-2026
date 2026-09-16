@@ -8,11 +8,13 @@
 
 ---
 
-## Antes de empezar: tres cosas que conviene saber de GeoLibre
+## Antes de empezar: cinco cosas que conviene saber de GeoLibre
 
 1. **Todo corre en tu navegador.** Tus datos no salen del ordenador. Si recargas la página, pierdes las capas y las vistas SQL: guarda el proyecto (*Proyecto → Guardar*) al final de cada bloque.
 2. **Las fechas llegan como números.** Al cargar un GeoParquet, GeoLibre guarda `timestamp`, `fecha_hora_local`, `fecha_ini` y `fecha_fin` como **milisegundos desde 1970**. En SQL se convierten con `epoch_ms(timestamp)`. Se pueden comparar y restar directamente (una hora son 3.600.000 ms).
 3. **El Espacio de trabajo SQL ejecuta una sola sentencia cada vez.** Nada de encadenar varias con `;`. Las vistas (`CREATE VIEW`) sí se mantienen entre ejecuciones.
+4. **En la tabla de resultados, las fechas se ven como números.** `epoch_ms(timestamp)` devuelve una fecha de verdad, pero la tabla la muestra en milisegundos. Para leerla, conviértela a texto: `epoch_ms(timestamp)::VARCHAR`.
+5. **GeoLibre se actualiza varias veces al día.** Si la página se queda en blanco o un menú deja de responder, recarga con **Ctrl+Shift+R** (antes guarda el proyecto). Algún nombre de menú puede no coincidir exactamente con este guion.
 
 ---
 
@@ -21,7 +23,7 @@
 ### 1.1 Cargar los datos
 
 1. Abre **web.geolibre.app**. Si no está en español: *Configuración → Idioma → Español*.
-2. *Añadir datos → Capa vectorial* y arrastra, de uno en uno:
+2. **Arrastra al mapa** los ficheros, de uno en uno (también puedes usar *Añadir datos → Capa vectorial*):
    - `gps_aves_2019_2020.parquet` (45.544 puntos)
    - `inundacion_2019_2020.parquet` (3.460 polígonos)
    - `recintos_marisma.parquet`
@@ -33,18 +35,18 @@
 ### 1.2 Animar con el Control de tiempo
 
 1. *Complementos → Control de tiempo → Activar*. Aparece una línea temporal en la parte inferior del mapa.
-2. En la capa de puntos, abre el menú de acciones (`⋯`) → **Vincular al control de tiempo…**
-   - Campo: `timestamp`.
-   - Ventana: **1 día**. Así cada paso muestra solo los fixes de ese día.
-3. Pulsa ▶. Ajusta la velocidad (ms por paso) y el paso (día / semana).
-4. Vincula también `inundacion_2019_2020` con el campo `fecha_ini` y una ventana hacia atrás de unos 15 días.
+2. En la capa de puntos, abre el menú de acciones (`⋯`) → **Vincular al control deslizante de tiempo…**
+   - *Propiedad de tiempo*: `timestamp`.
+   - *Mostrar entidades*: **En el paso actual**.
+3. En la línea temporal, abajo a la derecha, elige el paso **D** (día). Así cada paso muestra solo los fixes de ese día. Pulsa ▶ y ajusta la velocidad (ms por paso).
+4. Vincula también `inundacion_2019_2020` con la propiedad `fecha_ini` y *Mostrar entidades*: **Dentro de tres pasos antes y después**.
 
 **Preguntas**
 
 - **1.2** ¿Cuándo llegan y cuándo se van los ánsares? ¿Y las espátulas? ¿Por dónde entran y por dónde salen?
 - **1.3** Localiza la semana en que se inunda la marisma. ¿Qué cambia en la distribución de los flamencos?
-- **1.4** El Control de tiempo filtra por **un** campo de fecha con una ventana, pero cada polígono de inundación es válido **entre** `fecha_ini` y `fecha_fin`. ¿Qué error visual introduce la aproximación del punto 4? ¿Cuándo verías dos máscaras superpuestas o ninguna?
-- **1.5** Activa el modo **acumulado** en la capa de puntos. ¿Qué ves que no veías con la ventana de 1 día? ¿Qué se pierde?
+- **1.4** El Control de tiempo filtra por **un** campo de fecha, pero cada polígono de inundación es válido **entre** `fecha_ini` y `fecha_fin`. Con el paso diario y ±3 pasos, cada máscara solo aparece 3 días antes y 3 días después de su `fecha_ini`. Las imágenes Landsat llegan cada 8-16 días: ¿cuántos días verás la marisma sin ninguna máscara? ¿Cuándo verías dos superpuestas?
+- **1.5** Cambia *Mostrar entidades* de la capa de puntos a **Todo hasta el paso actual (acumulativo)**. ¿Qué ves que no veías con el paso de 1 día? ¿Qué se pierde?
 
 ### 1.3 Primer vistazo en SQL
 
@@ -157,21 +159,39 @@ Elige **al menos dos** de las tres.
 
 ### 4.1 Paradas: colonia y dormideros
 
-1. *Caja de herramientas de GeoLibre → Vectorial → Selección → Seleccionar por valor*: `nombre_comun` = `Espátula común` → nueva capa.
-2. *Vectorial → Movimiento y tiempo → **Detectar paradas*** sobre esa capa.
-   - Distancia: 300 m.
-   - Duración mínima: 3 h.
+> La herramienta admite **como máximo 5.000 puntos**. Una sola espátula tiene unos 4.600 fixes, así que se trabaja **con un ave cada vez**.
+
+1. En el Espacio de trabajo SQL, crea la capa de un ave y pulsa **Añadir como capa**:
+   ```sql
+   SELECT id_fix, id_ave, nombre_comun, timestamp,
+          epoch_ms(fecha_hora_local)::VARCHAR AS hora_local, geom
+   FROM gps_limpio
+   WHERE id_ave = 'ESP01'
+   ```
+2. *Procesamiento → Caja de herramientas de GeoLibre → Vectorial → Movimiento y tiempo → **Detectar paradas*** sobre esa capa (se llama *SQL result* y la hora; puedes renombrarla).
+   - Campo de tiempo: `timestamp`. Identificador: `id_ave`.
+   - Distancia máxima: 300 m.
+   - Duración mínima: **10800 s** (3 h; la herramienta pide segundos).
 
 - **4.1** ¿Dónde está la colonia? ¿Cuándo empiezan y acaban las paradas largas en ella?
-- **4.2** Repite con los ánsares. ¿Las paradas nocturnas caen en agua? ¿Y las diurnas?
-- **4.3** Cambia a 1.000 m y 12 h. ¿Qué paradas desaparecen? ¿Qué parámetros justificarías para cada especie?
+- **4.2** Repite con un ánsar (`ANS01`). ¿Las paradas nocturnas caen en agua? ¿Y las diurnas?
+- **4.3** Cambia a 1.000 m y 43200 s (12 h). ¿Qué paradas desaparecen? ¿Qué parámetros justificarías para cada especie?
 
 ### 4.2 Encuentros
 
-*Vectorial → Movimiento y tiempo → **Proximidad espacio-temporal*** sobre los ánsares: 200 m y 30 min.
+> Esta herramienta compara todos los pares de puntos y admite **como máximo 2 millones de pares**. Con los cuatro ánsares completos no cabe: se trabaja con **una semana**.
 
-- **4.4** ¿Qué pares de aves se encuentran? ¿Cuántas veces? ¿Es un encuentro o una pareja que vuela junta?
-- **4.5** *(SQL, avanzado)* Calcula para cada par de ánsares el % de horas en que están a menos de 200 m. Pista: une la tabla consigo misma con `round(timestamp / 3600000)` como clave para no comparar todos los fixes con todos.
+1. Crea la capa y pulsa **Añadir como capa**:
+   ```sql
+   SELECT id_fix, id_ave, timestamp, geom
+   FROM gps_limpio
+   WHERE nombre_comun = 'Ánsar común'
+     AND timestamp BETWEEN epoch_ms(TIMESTAMP '2019-12-01') AND epoch_ms(TIMESTAMP '2019-12-08')
+   ```
+2. *Vectorial → Movimiento y tiempo → **Proximidad espacio-temporal*** sobre esa capa: campo de tiempo `timestamp`, identificador `id_ave`, 200 m y 30 minutos.
+
+- **4.4** ¿Qué pares de aves se encuentran esa semana? ¿Cuántas veces? ¿Es un encuentro o una pareja que vuela junta?
+- **4.5** *(SQL, avanzado)* Calcula para cada par de ánsares, **en toda la temporada**, el % de horas en que están a menos de 200 m. En SQL no hay límite de pares. Pista: une la tabla consigo misma con `round(timestamp / 3600000)` como clave para no comparar todos los fixes con todos.
 
 ### 4.3 Área de campeo como serie temporal
 
