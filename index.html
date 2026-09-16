@@ -340,6 +340,31 @@ body.sin-nav button.nav { pointer-events: none; }
 .eslogan { font: 700 30px/1.25 var(--display); color: var(--ink); letter-spacing: -.01em; }
 .part .banner { width: 720px; max-width: 100%; border-radius: 4px; margin-top: 8px; }
 
+/* fichas de teoría · opcionales, se saltan con ⇧← ⇧→ */
+.slide.ficha { background: #f3f5f0; border-left: 6px solid var(--water); padding-left: 90px; }
+.slide.ficha .eyebrow { color: var(--water); }
+.slide.ficha .eyebrow .etq {
+  background: var(--water); color: #fff; padding: 4px 11px 3px; border-radius: 3px;
+  letter-spacing: .12em; font-weight: 500;
+}
+.slide.ficha .eyebrow .etq + span::before { content: ""; margin: 0; }
+.slide.ficha .callout { background: #e7ebe4; }
+.formula {
+  font: 500 24px/1.5 var(--mono); color: var(--ink); background: #fff;
+  border: 1px solid var(--rule); border-radius: 4px; padding: 16px 20px;
+}
+.formula small { display: block; font-size: 17px; color: var(--muted); margin-top: 6px; letter-spacing: 0; }
+.pasos-mk { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: mk; }
+.pasos-mk li { counter-increment: mk; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: baseline; font-size: 22px; }
+.pasos-mk li::before { content: counter(mk); font: 700 30px/1 var(--display); color: var(--water); }
+.parquet { display: grid; gap: 10px; font: 500 18px/1.35 var(--mono); }
+.parquet div { border: 1px solid var(--rule); background: #fff; border-radius: 4px; padding: 12px 16px; color: var(--ink-2); }
+.parquet div b { display: block; color: var(--ink); font-family: var(--display); font-size: 20px; margin-bottom: 4px; letter-spacing: -.01em; }
+.parquet .par1 { background: var(--code-bg); color: var(--code-dim); border-color: var(--code-bg); text-align: center; padding: 8px; }
+table.conf td.d { background: var(--water-lt); color: var(--ink); font-weight: 600; }
+table.conf td, table.conf th { text-align: right; }
+table.conf td:first-child, table.conf th:first-child { text-align: left; }
+
 /* notas del ponente (tecla N) */
 .notas { display: none; }
 .notes-panel {
@@ -364,7 +389,7 @@ svg text { font-family: var(--mono); }
 </style>
 </head>
 <body>
-<div class="hint">← → navegar · O orden del día · F pantalla completa</div>
+<div class="hint">← → navegar · ⇧← ⇧→ saltar fichas · O orden del día · F pantalla completa</div>
 <button class="nav prev" id="nav-prev" aria-label="Diapositiva anterior"></button>
 <button class="nav next" id="nav-next" aria-label="Diapositiva siguiente"></button>
 
@@ -580,6 +605,26 @@ svg text { font-family: var(--mono); }
 </section>
 
 <!-- =============================================================== 4 -->
+<!-- =============================================================== ficha · componentes de una serie -->
+<section class="slide ficha" data-title="Ficha · Las tres piezas de una serie">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Series temporales</span></div>
+  <h2>Toda serie es tendencia, estacionalidad y ruido a la vez</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <ul class="plain small">
+        <li><strong>Tendencia:</strong> el cambio lento y sostenido de fondo. La marisma que se colmata, las cumbres que verdean.</li>
+        <li><strong>Estacionalidad:</strong> el ciclo que se repite cada año. Es la parte más grande y la que más confunde.</li>
+        <li><strong>Ruido:</strong> todo lo demás: nubes mal enmascaradas, errores del sensor, años raros.</li>
+      </ul>
+      <div class="callout">El <b>peso de una persona</b>: engorda un poco cada año, en Navidad sube y en verano baja, y cada mañana la báscula marca algo distinto.</div>
+    </div>
+    <figure class="fill">
+      <img src="img/teoria/componentes.png" alt="Serie sintética de NDVI mensual descompuesta en tendencia, estacionalidad y ruido" style="max-height: 470px;">
+      <figcaption>Serie sintética de NDVI mensual · lo de arriba es la suma de las tres de abajo</figcaption>
+    </figure>
+  </div>
+</section>
+
 <section class="slide" data-title="Resolución temporal">
   <div class="eyebrow"><span>Conceptos</span><span>Escala</span></div>
   <h2>La frecuencia de muestreo decide qué fenómeno puedes ver</h2>
@@ -956,6 +1001,29 @@ ndvi.get_gif(name=<span class="s">'ndvi_marisma.gif'</span>)</pre>
 </section>
 
 <!-- =============================================================== 17 -->
+<!-- =============================================================== ficha · reductores -->
+<section class="slide ficha" data-title="Ficha · Qué reductor elijo">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Composites</span></div>
+  <h2>Elegir reductor es elegir qué le preguntas al periodo</h2>
+  <div class="cols c-7-5">
+    <table class="data compacta">
+      <thead><tr><th>Reductor</th><th>Qué hace</th><th>Cuándo</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">max</td><td>El valor más alto del periodo</td><td>Las nubes bajan el NDVI, así que el máximo las esquiva… y se queda con cualquier valor erróneamente alto</td></tr>
+        <tr><td class="mono">percentile 85–95</td><td>Casi el máximo, sin los extremos</td><td>El compromiso habitual: esquiva nubes sin comprar el atípico</td></tr>
+        <tr><td class="mono">median</td><td>El valor central</td><td>Estado típico; robusto en los dos sentidos</td></tr>
+        <tr><td class="mono">mean</td><td>La media</td><td>Series ya limpias; sensible a atípicos</td></tr>
+        <tr><td class="mono">std · cv · range</td><td>Cuánto varía el píxel dentro del periodo</td><td>Superficies inestables: inundación, cosecha, incendio</td></tr>
+        <tr><td class="mono">count</td><td>Cuántas observaciones válidas hay</td><td>La capa de calidad: dónde fiarse del resto</td></tr>
+      </tbody>
+    </table>
+    <div class="stack">
+      <div class="callout"><b>Error frecuente.</b> Un composite de máximo <em>no</em> es el mejor día del periodo: es un <b>mosaico de días distintos</b>. Cada píxel viene de la fecha en que tuvo su valor máximo, y dos píxeles vecinos pueden venir de semanas diferentes.</div>
+      <p class="small">La alternativa al composite es <strong>rellenar el hueco</strong>: con la fecha válida más próxima (lo que hicimos con las máscaras del curso), interpolando o ajustando una curva.</p>
+    </div>
+  </div>
+</section>
+
 <section class="slide" data-title="Tendencias y fenología">
   <div class="eyebrow"><span>Ráster</span><span>Tendencias y fenología</span></div>
   <h2>¿Cambia a largo plazo? ¿Cuándo empieza y acaba la estación?</h2>
@@ -988,6 +1056,123 @@ ts.plot_phenology_analysis(point=(<span class="s">-6.19</span>, <span class="s">
 </section>
 
 <!-- =============================================================== 18 -->
+<!-- =============================================================== ficha · Mann-Kendall -->
+<section class="slide ficha" data-title="Ficha · Mann-Kendall paso a paso">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Tendencias · 1 de 3</span></div>
+  <h2>Mann-Kendall: preguntar a todas las parejas de años</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <table class="data compacta">
+        <thead><tr><th>Año</th><th class="num">2019</th><th class="num">2020</th><th class="num">2021</th><th class="num">2022</th><th class="num">2023</th><th class="num">2024</th></tr></thead>
+        <tbody><tr><td>NDVI</td><td class="num">0,15</td><td class="num">0,17</td><td class="num">0,16</td><td class="num">0,19</td><td class="num">0,18</td><td class="num">0,21</td></tr></tbody>
+      </table>
+      <ol class="pasos-mk">
+        <li><span>Todos los pares (año anterior, año posterior): con <em>n</em> = 6 hay <strong>n(n−1)/2 = 15</strong>.</span></li>
+        <li><span>Un signo a cada par: +1 si sube, −1 si baja. Aquí <strong>13 suben y 2 bajan</strong>.</span></li>
+        <li><span>Se suman: <strong>S = 13 − 2 = 11</strong>. ¿Es mucho? Depende de cuánto variaría S por azar.</span></li>
+      </ol>
+      <div class="formula">Var(S) = n(n−1)(2n+5)/18 = 28,33<br>Z = (S − 1) / √Var(S) = 1,88
+        <small>El −1 es la corrección por continuidad; si hay empates se resta un término por cada grupo</small></div>
+    </div>
+    <figure class="stack">
+      <img src="img/teoria/mk_sen_pares.png" alt="Los 15 pares del ejemplo y las 15 pendientes ordenadas con su mediana" style="max-height: 360px;">
+      <figcaption>Izquierda: los 15 pares, azul sube y naranja baja · derecha: la pendiente de cada par, ordenadas</figcaption>
+      <div class="callout">No usa los valores, solo <b>el orden</b>: una nube mal enmascarada apenas lo mueve, y en cambio tira con fuerza de una recta de regresión.</div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== ficha · tau y valor p -->
+<section class="slide ficha" data-title="Ficha · La τ y el valor p">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Tendencias · 2 de 3</span></div>
+  <h2>τ mide la consistencia; el valor p, si el azar la explica</h2>
+  <div class="cols c-5-7">
+    <div class="stack">
+      <div class="formula">τ = S / nº de pares = 11 / 15 = 0,73
+        <small>De −1 a +1 · es una correlación de rangos entre el tiempo y la variable</small></div>
+      <p class="small">Se lee como «de todas las parejas de años, qué <strong>proporción neta</strong> sube». No dice cuánto sube: solo con qué consistencia.</p>
+      <div class="callout"><b>El valor p</b> es la probabilidad de ver una tendencia al menos tan marcada como la observada <em>si en realidad no hubiera ninguna</em>. Aquí Z = 1,88 da <b>p = 0,060</b>: con solo 6 años, un patrón así aparece por azar con relativa facilidad, aunque 13 de 15 pares suban.</div>
+    </div>
+    <div class="stack">
+      <figure>
+        <img src="img/teoria/valor_p.png" alt="Campana normal con las dos colas sombreadas más allá del Z observado" style="max-height: 250px;">
+        <figcaption>El valor p es el área de las dos colas más allá del Z observado</figcaption>
+      </figure>
+      <table class="data compacta">
+        <thead><tr><th>El valor p NO es…</th><th>Porque…</th></tr></thead>
+        <tbody>
+          <tr><td>La probabilidad de que no haya tendencia</td><td>Se calcula <em>suponiendo</em> que no la hay</td></tr>
+          <tr><td>Una medida de cuánto cambia</td><td>Un cambio minúsculo con muchos datos da un p diminuto. Eso lo dice Sen</td></tr>
+          <tr><td>Un interruptor mágico en 0,05</td><td>p = 0,049 y p = 0,051 cuentan prácticamente lo mismo</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ficha · pendiente de Sen -->
+<section class="slide ficha" data-title="Ficha · Pendiente de Sen">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Tendencias · 3 de 3</span></div>
+  <h2>Sen: la mediana de todas las pendientes</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <div class="formula">pendiente(i, j) = (valorⱼ − valorᵢ) / (añoⱼ − añoᵢ)<br>Sen = mediana de las 15 = 0,010 NDVI/año
+        <small>Aguanta hasta un 29 % de datos contaminados; la regresión, ni uno en el peor caso</small></div>
+      <figure>
+        <img src="img/teoria/ols_vs_sen.png" alt="Efecto de un valor atípico sobre la recta de regresión frente a la pendiente de Sen" style="max-height: 230px;">
+        <figcaption>Con un atípico en 2021, la regresión pasa de 0,0103 a 0,0154 NDVI/año (+50 %); Sen se queda en 0,0100</figcaption>
+      </figure>
+    </div>
+    <div class="stack">
+      <h3>Los dos casos del viernes · NDVI máximo de verano, 1985–2025</h3>
+      <table class="data compacta">
+        <thead><tr><th>Serie</th><th class="num">n</th><th class="num">τ</th><th class="num">p</th><th class="num">Sen/década</th></tr></thead>
+        <tbody>
+          <tr><td>Monte Perdido &gt; 2.500 m</td><td class="num">40</td><td class="num">0,50</td><td class="num">0,000007</td><td class="num">+0,018</td></tr>
+          <tr><td class="mono" style="font-size:18px;">· solo TM/ETM+ 1985–2011</td><td class="num">26</td><td class="num">0,26</td><td class="num">0,071</td><td class="num">+0,011</td></tr>
+          <tr><td class="mono" style="font-size:18px;">· solo OLI 2013–2025</td><td class="num">13</td><td class="num">0,64</td><td class="num">0,003</td><td class="num">+0,049</td></tr>
+          <tr><td>Sierra Nevada &gt; 2.800 m</td><td class="num">41</td><td class="num">0,26</td><td class="num">0,016</td><td class="num">+0,004</td></tr>
+          <tr><td class="mono" style="font-size:18px;">· solo TM/ETM+ 1985–2011</td><td class="num">27</td><td class="num">0,00</td><td class="num">1,00</td><td class="num">0,000</td></tr>
+          <tr><td class="mono" style="font-size:18px;">· solo OLI 2013–2025</td><td class="num">13</td><td class="num">0,59</td><td class="num">0,006</td><td class="num">+0,021</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">Casi todo el verdeo está en la época de Landsat 8. Parte puede ser <b>cambio de sensor</b>, y la autocorrelación (0,41 en Sierra Nevada) infla la significación: la lectura honesta es «hay señal, no hay prueba de tendencia larga».</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ficha · fenología -->
+<section class="slide ficha" data-title="Ficha · Fenología y suavizado">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Fenología</span></div>
+  <h2>Cuatro maneras de ponerle fecha a la primavera</h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <table class="data compacta">
+        <thead><tr><th>Métrica</th><th>Qué es</th></tr></thead>
+        <tbody>
+          <tr><td>SOS</td><td><em>Start of season</em> · día en que empieza a verdear</td></tr>
+          <tr><td>POS</td><td><em>Peak of season</em> · día del máximo, y su valor</td></tr>
+          <tr><td>EOS</td><td><em>End of season</em> · día en que termina la senescencia</td></tr>
+          <tr><td>LOS</td><td>EOS − SOS, en días</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><b>Savitzky-Golay.</b> Antes de buscar el SOS hay que quitar ruido sin aplanar el pico. La media móvil es como difuminar una foto: quita el ruido y también los bordes. S-G es una regla flexible que se apoya en los puntos: ajusta un polinomio en cada ventana y se queda con su centro.</div>
+    </div>
+    <div class="stack">
+      <table class="data compacta">
+        <thead><tr><th>Método</th><th>Cómo define el SOS</th></tr></thead>
+        <tbody>
+          <tr><td>Umbral</td><td>El día en que cruza mínimo + X % de la amplitud. Sencillo; en ndvi2gif el umbral es adaptativo</td></tr>
+          <tr><td>Derivada</td><td>El momento de mayor velocidad de verdeo. Tiene sentido biológico, pero exige suavizar antes</td></tr>
+          <tr><td>Doble logística</td><td>Una sigmoide que sube y otra que baja. Métricas muy limpias, pero necesita datos (≥ 6) y puede no converger</td></tr>
+          <tr><td>Armónicos</td><td>El año como suma de ondas. <strong>Tolera huecos</strong> y se calcula píxel a píxel en Earth Engine: es el de <code>SpatialPhenologyAnalyzer</code></td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><b>Error frecuente.</b> Comparar SOS de métodos o umbrales distintos. El SOS no es una propiedad de la planta, es una <em>definición</em>: con el 20 % sale semanas antes que con el 50 %.</div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" data-title="Hidroperiodo">
   <div class="eyebrow"><span>Ráster</span><span>Hidroperiodo</span></div>
   <h2>Hidroperiodo: toda la película en un solo mapa</h2>
@@ -1008,6 +1193,34 @@ hyd = ha.compute_hydroperiod(index=<span class="s">'mndwi'</span>, hyd_year=<spa
       <img src="img/hidroperiodo_2019_2020.png" alt="Mapa de hidroperiodo 2019-2020 de la marisma de Doñana" style="max-height: 520px;">
       <figcaption>Protocolo v2 · hidroperiodo 2019-2020 · recintos de marisma y balsas de Veta la Palma</figcaption>
     </figure>
+  </div>
+</section>
+
+<!-- =============================================================== ficha · hidroperiodo -->
+<section class="slide ficha" data-title="Ficha · Midpoint e IRT">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Hidroperiodo</span></div>
+  <h2>De 26 imágenes a 365 días: la ponderación <span class="mono" style="font-size:.85em;">midpoint</span></h2>
+  <div class="cols c-2">
+    <div class="stack">
+      <p class="small">Cada escena representa los días que van <strong>desde el punto medio con la escena anterior hasta el punto medio con la siguiente</strong>. La primera cubre desde el día 0; la última, hasta el 365.</p>
+      <table class="data compacta">
+        <thead><tr><th>Escena</th><th class="num">Día</th><th>Territorio</th><th class="num">Días</th><th>¿Agua?</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="num">10</td><td class="mono">0 → 25</td><td class="num">25</td><td>no</td></tr>
+          <tr><td>2</td><td class="num">40</td><td class="mono">25 → 70</td><td class="num">45</td><td><em>sí</em></td></tr>
+          <tr><td>3</td><td class="num">100</td><td class="mono">70 → 365</td><td class="num">295</td><td>no</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">Hidroperiodo = <b>45 días</b>. Y ahí está el punto débil: la escena 3 representa 295 días. Si llueve en enero y no hay imagen, esa inundación <b>no existe</b> para el cálculo.</div>
+    </div>
+    <div class="stack">
+      <h3>IRT · ¿están bien repartidas las imágenes?</h3>
+      <p class="small">De 0 (todas amontonadas en un periodo) a 1 (repartidas por igual entre los 12 meses).</p>
+      <div class="formula">IRT global = 1 − Gini<br>IRT por píxel = N² / (12 · Σ nᵢ²)
+        <small>nᵢ = observaciones válidas del mes i · N = total · el de Simpson, porque las nubes tapan cada píxel de forma distinta</small></div>
+      <p class="small">24 observaciones, 2 por mes → 576 / (12 · 48) = <strong>1</strong>. Las 24 en un solo mes → 576 / (12 · 576) = <strong>0,08</strong>.</p>
+      <div class="callout">Es un <b>diario de lluvia</b>: si solo apuntas en abril, no sabes cuánto llovió en el año aunque tengas 30 anotaciones.</div>
+    </div>
   </div>
 </section>
 
@@ -1046,6 +1259,32 @@ hyd = ha.compute_hydroperiod(index=<span class="s">'mndwi'</span>, hyd_year=<spa
 </section>
 
 <!-- =============================================================== GeoLibre · menús -->
+<!-- =============================================================== ficha · GeoParquet -->
+<section class="slide ficha" data-title="Ficha · GeoParquet por dentro">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Formatos</span></div>
+  <h2>Por columnas, en binario y con el índice al final</h2>
+  <div class="cols c-7-5">
+    <div class="stack">
+      <p class="small">Un CSV o un GeoJSON son <strong>texto por filas</strong>: cada fix entero, y luego el siguiente. Parquet guarda <strong>por columnas y en binario</strong>: todos los HDOP juntos, todas las fechas juntas.</p>
+      <ul class="plain">
+        <li><strong>Lees solo lo que necesitas:</strong> si la consulta usa 2 columnas de 15, las otras 13 ni se tocan.</li>
+        <li><strong>Comprime mucho mejor:</strong> los valores de una columna se parecen entre sí y el diccionario guarda cada uno una vez. <code>id_ave</code>: 12 valores repetidos 45.544 veces en <strong>152 bytes</strong>.</li>
+        <li><strong>Conserva los tipos:</strong> una fecha es un entero de 64 bits con tipo <em>timestamp</em>, no un texto por interpretar.</li>
+        </ul>
+      <div class="callout">El pie guarda el mínimo y el máximo de cada columna: si buscas 2020 y un bloque acaba en 2019, se salta sin leerlo. Y como dice dónde vive cada columna, DuckDB lee un Parquet <b>remoto por trozos</b> con peticiones HTTP de rango: GeoLibre consulta un archivo de gigas sin descargarlo.</div>
+    </div>
+    <div class="stack">
+      <div class="parquet">
+        <div class="par1">PAR1 · firma de 4 bytes</div>
+        <div><b>Grupo de filas</b>geom (WKB) · lon/lat · timestamp · hdop · id_ave · especie<br>45.544 filas en 1 grupo, ZSTD</div>
+        <div><b>Pie de metadatos</b>esquema y tipos · mínimo/máximo por columna y grupo · la clave <span class="mono">geo</span> de GeoParquet: WKB, bbox y CRS<br>3.173 bytes</div>
+        <div class="par1">longitud del pie · PAR1</div>
+      </div>
+      <p class="small"><strong>No se edita</strong> (para digitalizar, GeoPackage) y no tiene índice espacial de verdad, solo estadísticas.</p>
+    </div>
+  </div>
+</section>
+
 <section class="slide" data-title="GeoLibre en cuatro menús">
   <div class="eyebrow"><span>GeoLibre</span><span>Dónde está cada cosa</span></div>
   <h2>El ejercicio en cuatro rutas de menú</h2>
@@ -1452,6 +1691,58 @@ print(ee.Image(<span class="s">'USGS/SRTMGL1_003'</span>)
 </section>
 
 <!-- =============================================================== ndvi2gif · series -->
+<!-- =============================================================== ficha · clasificadores -->
+<section class="slide ficha" data-title="Ficha · Cómo clasifica cada algoritmo">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Clasificadores · 1 de 2</span></div>
+  <h2>Clasificar es trazar fronteras en un espacio de muchas dimensiones</h2>
+  <div class="cols c-7-5">
+    <table class="data compacta">
+      <thead><tr><th>Algoritmo</th><th>Cómo traza la frontera</th></tr></thead>
+      <tbody>
+        <tr><td>CART</td><td>Preguntas sí/no encadenadas sobre una variable cada vez. Se entiende y se dibuja, pero memoriza el entrenamiento</td></tr>
+        <tr><td>Random Forest</td><td>Cien árboles, cada uno con una muestra al azar y solo unas variables por nudo; votan. Los errores se compensan. <strong>El de ndvi2gif</strong></td></tr>
+        <tr><td>SVM</td><td>La carretera más ancha que cabe entre las clases. Solo importan los puntos del borde. Va bien con pocas muestras; hay que escalar las variables</td></tr>
+        <tr><td>Naive Bayes</td><td>¿Qué clase es más probable con estos valores? Supone variables independientes, cosa que las bandas estacionales no cumplen</td></tr>
+        <tr><td>K-means</td><td>Eliges k centros, cada píxel va al más cercano, los centros se mudan a la media, y vuelta a empezar</td></tr>
+        <tr><td>Cascade K-means</td><td>Prueba todas las k del rango y se queda con la mejor según Calinski-Harabasz: grupos compactos y bien separados</td></tr>
+      </tbody>
+    </table>
+    <div class="stack">
+      <div class="callout">Cada píxel es un punto en un espacio de muchas dimensiones: NDVI de invierno, de primavera, de verano… Por eso las <b>métricas estacionales</b> ayudan tanto: el arrozal y la marisma pueden tener el mismo NDVI en junio, pero no el mismo calendario.</div>
+      <p class="small">En el no supervisado, <strong>los grupos no son clases</strong>: el grupo 7 puede juntar marisma y lámina de arrozal. Quien decide qué es cada uno eres tú.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== ficha · validación -->
+<section class="slide ficha" data-title="Ficha · ¿Ha clasificado bien?">
+  <div class="eyebrow"><span class="etq">Ficha</span><span>Clasificadores · 2 de 2</span></div>
+  <h2>¿Ha clasificado bien? La matriz de confusión</h2>
+  <div class="cols c-7-5">
+    <div class="stack">
+      <table class="data compacta conf">
+        <thead><tr><th>Referencia ↓ · Mapa →</th><th>Marisma</th><th>Arrozal</th><th>Monte</th><th>Total</th><th>Productor</th></tr></thead>
+        <tbody>
+          <tr><td>Marisma</td><td class="d">45</td><td>4</td><td>1</td><td>50</td><td>90 %</td></tr>
+          <tr><td>Arrozal</td><td>6</td><td class="d">38</td><td>6</td><td>50</td><td>76 %</td></tr>
+          <tr><td>Monte</td><td>2</td><td>3</td><td class="d">45</td><td>50</td><td>90 %</td></tr>
+          <tr><td>Total</td><td>53</td><td>45</td><td>52</td><td>150</td><td></td></tr>
+          <tr><td>Usuario</td><td>84,9 %</td><td>84,4 %</td><td>86,5 %</td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="formula">Global = (45 + 38 + 45) / 150 = 85,3 % · Kappa = 0,78
+        <small>Con muestras reservadas, que no se usaron para entrenar</small></div>
+    </div>
+    <div class="stack">
+      <ul class="plain small">
+        <li><strong>Productor</strong> (por filas): de los arrozales reales, ¿cuántos encuentra el mapa? 38/50. Su complemento es el <em>error de omisión</em>.</li>
+        <li><strong>Usuario</strong> (por columnas): de lo que el mapa llama arrozal, ¿cuánto lo es? 38/45. Su complemento, el <em>error de comisión</em>. Es el que importa a quien va al campo.</li>
+      </ul>
+      <div class="callout"><b>Tres trampas.</b> Píxeles vecinos en entrenamiento y validación inflan la exactitud (separa por polígonos). El Kappa ya no se recomienda como medida principal. Y un 95 % global puede esconder que la clase rara, la que te interesa, sale fatal.</div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" data-title="ndvi2gif · TimeSeriesAnalyzer">
   <div class="eyebrow"><span>ndvi2gif</span><span>Clase 4 de 5 · análisis temporal</span></div>
   <h2><code style="font-size: .9em;">TimeSeriesAnalyzer</code>: leer el tiempo</h2>
@@ -1705,9 +1996,16 @@ print(ee.Image(<span class="s">'USGS/SRTMGL1_003'</span>)
     document.title = 'El tiempo, del SIG a la nube · ' + (slides[i].dataset.title || (i + 1));
   }
 
+  // ⇧← ⇧→ : saltar las fichas de teoría (opcionales)
+  function salta(d) {
+    let k = i + d;
+    while (k > 0 && k < slides.length - 1 && slides[k].classList.contains('ficha')) k += d;
+    show(k);
+  }
+
   document.addEventListener('keydown', (e) => {
-    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
-    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); e.shiftKey ? salta(1) : show(i + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); e.shiftKey ? salta(-1) : show(i - 1); }
     else if (e.key === 'Home') show(0);
     else if (e.key === 'End') show(slides.length - 1);
     else if (e.key === 'n' || e.key === 'N') notes.classList.toggle('open');

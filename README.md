@@ -6,7 +6,9 @@ Materiales de la parte de **Diego García Díaz y David Aragonés** (Laboratorio
 
 **▶ [https://digdgeo.github.io/sig-avanzado-2026](https://digdgeo.github.io/sig-avanzado-2026)**
 
-Teclas: ← → para navegar · **O** orden del día · **F** pantalla completa.
+Teclas: ← → para navegar · **⇧← ⇧→** saltar las fichas · **O** orden del día · **F** pantalla completa.
+
+Las diapositivas marcadas como **Ficha** son teoría de apoyo (Mann-Kendall y Sen, fenología, hidroperiodo, GeoParquet, clasificadores). Están para consultarlas con calma: si en clase vamos justos de tiempo, se saltan con ⇧→.
 
 ## Antes de las prácticas
 
