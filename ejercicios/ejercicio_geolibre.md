@@ -157,7 +157,7 @@ LIMIT 40
 
 ### 2.4 Marcar los sospechosos y crear la vista limpia
 
-Tres sentencias, **una ejecución cada una**:
+Tres sentencias. ⚠️ **Ejecútalas de una en una**, limpiando el editor entre medias: el Espacio de trabajo corre **una sola sentencia por ejecución**, y pegadas de golpe fallan.
 
 ```sql
 CREATE OR REPLACE VIEW gps_marcado AS
@@ -184,7 +184,19 @@ FROM gps_marcado
 
 > `CREATE VIEW` no devuelve filas: la tabla de resultados sale vacía y **eso es correcto**. Las vistas persisten durante la sesión, pero se pierden si recargas la página.
 
-- **2.4** Hay **68 errores simulados**. La regla del pico marca **33**, y los 33 son errores de verdad. El HDOP > 5 pilla **49**. ¿Cuántos quedan sin detectar, y por qué ninguna regla sencilla los encuentra?
+**Debe salir:** 33 picos · 48 de mala geometría · **62 descartados** · 45.544 en total.
+
+Contrastado con la clave de errores, que solo tiene el profesor, hay **68 errores simulados** y las reglas se portan así:
+
+| regla | marca | de ellos errores | fixes buenos tirados |
+|---|---|---|---|
+| pico | 33 | **33** | **0** |
+| mala geometría | 48 | 35 | 13 |
+| las dos juntas | 62 | **49** | 13 |
+
+- **2.4** La regla del pico no tiene ni un falso positivo y la del HDOP tira 13 fixes buenos. ¿Cuál de las dos te fiarías más, y para qué?
+- **2.4b** Se escapan **19 errores**: saltos de 7,4 km de mediana (entre 2,7 y 49,4) con **HDOP de 1,7 de mediana y 3,6 como máximo**, o sea geometría impecable. ¿Por qué ninguna regla sencilla puede encontrarlos? ¿Qué haría falta para detectarlos?
+- **2.4c** Hay 48 fixes con `hdop > 5` y 35 con `n_sat < 5`, y **los 35 están dentro de los 48**. El `OR n_sat < 5` de la regla no añade ni un fix. ¿Por qué era previsible?
 
 ### 2.5 Ver los descartados en el mapa
 
