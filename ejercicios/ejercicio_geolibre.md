@@ -59,8 +59,8 @@ WITH p AS (
   FROM gps_aves_2019_2020
 )
 SELECT id_ave, nombre_comun, count(*) AS n_fixes,
-       epoch_ms(min(timestamp)) AS primer_fix_utc,
-       epoch_ms(max(timestamp)) AS ultimo_fix_utc,
+       epoch_ms(min(timestamp))::VARCHAR AS primer_fix_utc,
+       epoch_ms(max(timestamp))::VARCHAR AS ultimo_fix_utc,
        round(median(dt_min))    AS intervalo_mediano_min,
        round(max(dt_min) / 60, 1) AS mayor_hueco_h
 FROM p
