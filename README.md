@@ -32,6 +32,9 @@ Las diapositivas marcadas como **Ficha** son teoría de apoyo (Mann-Kendall y Se
 | Ejercicios de Python | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/01_intro_python_exercises.ipynb) |
 | Programación orientada a objetos | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/01b_python_classes.ipynb) |
 | Introducción a pandas | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/01c_pandas_dataframes.ipynb) |
+| Composites y series con ndvi2gif | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/02_ndvi2gif_curso.ipynb) |
+| GeoLibre desde código | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/03_geolibre_codigo.ipynb) |
+| ¿Reverdecen las cumbres? Sierra Nevada y Pirineos | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Digdgeo/sig-avanzado-2026/blob/main/python/04_cumbres_reverdecen.ipynb) |
 
 Guías: [Google Colab](python/introduccion_colab.md) · [Anaconda](python/introduccion_anaconda.md)
 
