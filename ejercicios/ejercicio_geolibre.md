@@ -6,6 +6,8 @@
 
 > Los datos GPS son **simulados**: sirven para aprender el método, no para sacar conclusiones sobre estas especies. La inundación sí es real (Landsat, Protocolo v2, ciclo 2019-2020).
 
+> **Cómo usar este guion.** Todas las consultas están escritas: se copian y se ejecutan. Vamos justos de tiempo, así que **el trabajo no es teclear SQL, es leer lo que hace cada consulta y responder a las preguntas numeradas**. Donde pone *"Debe salir"* tienes el resultado esperado, para saber si vas bien sin esperar a nadie.
+
 ---
 
 ## Antes de empezar: cinco cosas que conviene saber de GeoLibre
@@ -105,10 +107,39 @@ FROM u
 WINDOW w AS (PARTITION BY id_ave ORDER BY timestamp)
 ```
 
-Ahora, sobre la vista `pasos`, escribe tú las consultas:
+Ahora, sobre la vista `pasos`:
 
-- **2.2** Velocidad mediana, percentil 99 y nº de pasos por encima de 80 km/h, **por especie**. La velocidad en km/h es `3.6 * dist_prev_m / dt_prev_s`. Pista: `median()`, `quantile_cont(x, 0.99)` y `count(*) FILTER (WHERE …)`.
-- **2.3** Lista los 30 pasos más rápidos con su velocidad de llegada **y** de salida, HDOP y nº de satélites. Clasifica a mano cinco de ellos como *error* o *vuelo real*. Pista: un **pico** tiene llegada **y** salida rápidas; un **vuelo real** solo una de las dos.
+### 2.2 Velocidades por especie
+
+```sql
+SELECT nombre_comun,
+       round(median(3.6 * dist_prev_m / dt_prev_s), 2)              AS v_mediana_kmh,
+       round(quantile_cont(3.6 * dist_prev_m / dt_prev_s, 0.99), 1) AS v_p99_kmh,
+       count(*) FILTER (WHERE 3.6 * dist_prev_m / dt_prev_s > 80)   AS n_mas_80kmh
+FROM pasos
+GROUP BY ALL
+```
+
+**Debe salir:** espátula 0,13 · 10,5 · 32 — flamenco 0,11 · 6,2 · 6 — ánsar 0,12 · 27,9 · 23.
+
+- **2.2** La mediana es casi cero en las tres especies. ¿Por qué? ¿Sirve de algo para detectar errores?
+- **2.2b** El flamenco tiene 6 pasos rápidos y la espátula 32. ¿Vuela menos el flamenco, o hay otra explicación? Mira su intervalo mediano en la tabla del 1.3.
+
+### 2.3 Los pasos más rápidos: ¿error o vuelo real?
+
+```sql
+SELECT id_ave, epoch_ms(timestamp)::VARCHAR AS t_utc,
+       round(dist_prev_m / 1000, 1)         AS km_desde_anterior,
+       round(3.6 * dist_prev_m / dt_prev_s) AS v_llegada_kmh,
+       round(3.6 * dist_next_m / dt_next_s) AS v_salida_kmh,
+       hdop, n_sat
+FROM pasos
+WHERE 3.6 * dist_prev_m / dt_prev_s > 80
+ORDER BY v_llegada_kmh DESC
+LIMIT 40
+```
+
+- **2.3** Clasifica a mano cinco filas como *error* o *vuelo real*. La regla: un **pico** tiene llegada **y** salida rápidas (el ave salta fuera y vuelve); un **vuelo real** solo tiene una de las dos. Fíjate en que los errores aparecen **por parejas de filas consecutivas**: la posición errónea y el fix siguiente, que es inocente.
 - **2.3b** En esa lista no hay ni un flamenco, aunque FLA03 hace el viaje más largo de todos. Míralo aparte:
 
   ```sql
@@ -123,8 +154,48 @@ Ahora, sobre la vista `pasos`, escribe tú las consultas:
   ```
 
   Salen tres filas: dos el 27 de noviembre y una el 18 de marzo. ¿Cuál es un error y cuál un vuelo real? ¿Por qué el HDOP no ayuda aquí? Y sobre todo: **¿por qué ninguna de las tres aparecía en la lista de los 30 más rápidos?** Compara el intervalo mediano de muestreo de la tabla del 1.3.
-- **2.4** Define una regla de **pico** (llegada y salida rápidas a la vez) y otra de **mala geometría** (`hdop`, `n_sat`). ¿Cuántos fixes marca cada una? Crea con ellas dos vistas: `gps_marcado`, con dos columnas booleanas, y `gps_limpio`, sin los sospechosos.
-- **2.5** Ejecuta una consulta que devuelva **solo los fixes descartados con su `geom`** y pulsa **Añadir como capa**. ¿Dónde caen? ¿Se te ha escapado alguno que se vea claramente fuera de sitio?
+
+### 2.4 Marcar los sospechosos y crear la vista limpia
+
+Tres sentencias, **una ejecución cada una**:
+
+```sql
+CREATE OR REPLACE VIEW gps_marcado AS
+SELECT *,
+       coalesce(3.6 * dist_prev_m / dt_prev_s > 60 AND 3.6 * dist_next_m / dt_next_s > 60, false) AS pico,
+       hdop > 5 OR n_sat < 5 AS mala_geometria
+FROM pasos
+```
+
+```sql
+CREATE OR REPLACE VIEW gps_limpio AS
+SELECT * EXCLUDE (pico, mala_geometria)
+FROM gps_marcado
+WHERE NOT pico AND NOT mala_geometria
+```
+
+```sql
+SELECT count(*) FILTER (WHERE pico)                   AS n_picos,
+       count(*) FILTER (WHERE mala_geometria)         AS n_mala_geometria,
+       count(*) FILTER (WHERE pico OR mala_geometria) AS n_descartados,
+       count(*)                                       AS n_total
+FROM gps_marcado
+```
+
+> `CREATE VIEW` no devuelve filas: la tabla de resultados sale vacía y **eso es correcto**. Las vistas persisten durante la sesión, pero se pierden si recargas la página.
+
+- **2.4** Hay **68 errores simulados**. La regla del pico marca **33**, y los 33 son errores de verdad. El HDOP > 5 pilla **49**. ¿Cuántos quedan sin detectar, y por qué ninguna regla sencilla los encuentra?
+
+### 2.5 Ver los descartados en el mapa
+
+```sql
+SELECT id_fix, id_ave, epoch_ms(timestamp)::VARCHAR AS t_utc,
+       hdop, n_sat, pico, mala_geometria, geom
+FROM gps_marcado
+WHERE pico OR mala_geometria
+```
+
+- **2.5** Pulsa **Añadir como capa**. ¿Dónde caen? ¿Se te ha escapado alguno que se vea claramente fuera de sitio?
 
 > **Para discutir:** ¿un umbral fijo de velocidad sirve para las tres especies? ¿Borrarías los fixes o los marcarías? ¿Qué pasa con el error pequeño (3-10 km) y HDOP bueno?
 
@@ -157,13 +228,71 @@ GROUP BY ALL
 
 > Si no has creado `gps_limpio` en el bloque 2, cambia `gps_limpio` por `gps_aves_2019_2020`.
 
-**Preguntas**
+### 3.2 El porcentaje en agua, por especie y mes
 
-- **3.1** Calcula el **% de fixes en agua por especie y mes**. Usa `strftime(epoch_ms(fecha_hora_local), '%Y-%m')` para el mes. Exporta el resultado a CSV y haz un gráfico.
+```sql
+SELECT nombre_comun,
+       strftime(epoch_ms(fecha_hora_local), '%Y-%m') AS mes,
+       round(100 * avg(en_agua::INT), 1)             AS pct_en_agua,
+       count(*)                                      AS n
+FROM fix_agua
+GROUP BY ALL
+ORDER BY nombre_comun, mes
+```
+
+**Debe salir:** espátula 84 % en febrero, 19-22 % de marzo a mayo, 44 % en junio, 80-86 % en julio y agosto · flamenco 77-83 % de septiembre a febrero, 59 % en abril y mayo, 79-81 % de junio a agosto · ánsar 38 % en octubre y 51-55 % de noviembre a febrero.
+
+- **3.1** Exporta el resultado a CSV y haz un gráfico.
 - **3.2** ¿Qué especie usa menos el agua en marzo-mayo? ¿Por qué? Pista: ¿dónde pasa la mitad del tiempo?
-- **3.3** Reescribe la unión **sin** `ASOF JOIN`, usando el periodo de validez: `g.timestamp BETWEEN i.fecha_ini AND i.fecha_fin + 86399999`. ¿Por qué hay que sumar 86.399.999 ms a `fecha_fin`? ¿Salen los mismos porcentajes? ¿Cuál tarda más?
-- **3.4** Repite la pregunta 3.1 para los ánsares, pero agrupando por **hora local**: `hour(epoch_ms(fecha_hora_local))`. ¿Qué te dice el resultado sobre la media mensual del 3.1?
-- **3.5** Cruza también con `recintos_marisma`. ¿En qué recintos está cada especie en cada estación? ¿Qué porcentaje de fixes cae fuera de los recintos y dónde?
+
+### 3.3 La misma unión sin `ASOF JOIN`
+
+```sql
+SELECT g.nombre_comun,
+       round(100.0 * count(DISTINCT CASE WHEN i.id IS NOT NULL THEN g.id_fix END)
+             / count(DISTINCT g.id_fix), 1) AS pct_en_agua
+FROM gps_limpio g
+LEFT JOIN inundacion_2019_2020 i
+       ON g.timestamp BETWEEN i.fecha_ini AND i.fecha_fin + 86399999
+      AND ST_Intersects(g.geom, i.geom)
+GROUP BY ALL
+```
+
+- **3.3** ¿Por qué hay que sumar 86.399.999 ms a `fecha_fin`? ¿Salen los mismos porcentajes que con `ASOF JOIN`? ¿Cuál tarda más?
+
+### 3.4 El ritmo diario de los ánsares
+
+```sql
+SELECT hour(epoch_ms(fecha_hora_local))  AS hora_local,
+       round(100 * avg(en_agua::INT), 1) AS pct_en_agua,
+       count(*)                          AS n
+FROM fix_agua
+WHERE nombre_comun = 'Ánsar común'
+GROUP BY ALL
+ORDER BY hora_local
+```
+
+**Debe salir:** cerca del **90 % de noche** y casi **0 % entre las 8 y las 17 h**.
+
+- **3.4** El 3.2 daba un 51-55 % de media mensual para el ánsar. A la vista de esto, ¿qué estaba escondiendo esa media? Duermen en el agua de la marisma y pastan de día en los arrozales y la vera, fuera de los polígonos de agua.
+
+### 3.5 ¿En qué recinto está cada especie?
+
+```sql
+SELECT f.nombre_comun,
+       coalesce(r.recinto, 'fuera de los recintos') AS recinto,
+       CASE WHEN month(epoch_ms(f.fecha_hora_local)) IN (9,10,11) THEN '1 otoño'
+            WHEN month(epoch_ms(f.fecha_hora_local)) IN (12,1,2)  THEN '2 invierno'
+            WHEN month(epoch_ms(f.fecha_hora_local)) IN (3,4,5)   THEN '3 primavera'
+            ELSE '4 verano' END AS estacion,
+       count(*) AS n_fixes
+FROM fix_agua f
+LEFT JOIN recintos_marisma r ON ST_Intersects(f.geom, r.geom)
+GROUP BY ALL
+ORDER BY 1, 3, 4 DESC
+```
+
+- **3.5** ¿Qué porcentaje de fixes cae fuera de los recintos, y dónde?
 
 ---
 
@@ -205,7 +334,37 @@ Elige **al menos dos** de las tres.
 2. *Vectorial → Movimiento y tiempo → **Proximidad espacio-temporal*** sobre esa capa: campo de tiempo `timestamp`, identificador `id_ave`, 200 m y 30 minutos.
 
 - **4.4** ¿Qué pares de aves se encuentran esa semana? ¿Cuántas veces? ¿Es un encuentro o una pareja que vuela junta?
-- **4.5** *(SQL, avanzado)* Calcula para cada par de ánsares, **en toda la temporada**, el % de horas en que están a menos de 200 m. En SQL no hay límite de pares. Pista: une la tabla consigo misma con `round(timestamp / 3600000)` como clave para no comparar todos los fixes con todos.
+- **4.5** *(SQL, avanzado)* Lo mismo **en toda la temporada**, que en SQL no tiene límite de pares. La clave está en unir la tabla consigo misma por la hora redondeada, para no comparar todos los fixes con todos:
+
+  ```sql
+  WITH u AS (
+    SELECT id_ave, timestamp, round(timestamp / 3600000) AS hora,
+           ST_Transform(geom, 'EPSG:4326', 'EPSG:25829', always_xy := true) AS g
+    FROM gps_limpio
+    WHERE nombre_comun = 'Ánsar común'
+  ),
+  pares AS (
+    SELECT a.id_ave AS ave_a, b.id_ave AS ave_b, a.timestamp
+    FROM u a JOIN u b
+      ON a.hora = b.hora AND a.id_ave < b.id_ave
+     AND abs(a.timestamp - b.timestamp) <= 30 * 60 * 1000
+     AND ST_DWithin(a.g, b.g, 200)
+  ),
+  coinciden AS (
+    SELECT a.id_ave AS ave_a, b.id_ave AS ave_b, count(*) AS n_horas_comunes
+    FROM u a JOIN u b ON a.hora = b.hora AND a.id_ave < b.id_ave
+    GROUP BY ALL
+  )
+  SELECT c.ave_a, c.ave_b, c.n_horas_comunes,
+         count(p.timestamp) AS n_encuentros,
+         round(100.0 * count(p.timestamp) / c.n_horas_comunes, 1) AS pct_tiempo_juntos
+  FROM coinciden c
+  LEFT JOIN pares p ON p.ave_a = c.ave_a AND p.ave_b = c.ave_b
+  GROUP BY c.ave_a, c.ave_b, c.n_horas_comunes
+  ORDER BY pct_tiempo_juntos DESC
+  ```
+
+  **Debe salir:** ANS01–ANS02 cerca del **99,9 %** —son pareja— y el resto de combinaciones en torno al 0 %.
 
 ### 4.3 Área de campeo como serie temporal
 
