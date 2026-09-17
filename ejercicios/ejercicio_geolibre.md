@@ -108,7 +108,21 @@ WINDOW w AS (PARTITION BY id_ave ORDER BY timestamp)
 Ahora, sobre la vista `pasos`, escribe tú las consultas:
 
 - **2.2** Velocidad mediana, percentil 99 y nº de pasos por encima de 80 km/h, **por especie**. La velocidad en km/h es `3.6 * dist_prev_m / dt_prev_s`. Pista: `median()`, `quantile_cont(x, 0.99)` y `count(*) FILTER (WHERE …)`.
-- **2.3** Lista los 30 pasos más rápidos con su velocidad de llegada **y** de salida, HDOP y nº de satélites. Clasifica a mano cinco de ellos como *error* o *vuelo real*. Pista: mira FLA03 a mediados de marzo.
+- **2.3** Lista los 30 pasos más rápidos con su velocidad de llegada **y** de salida, HDOP y nº de satélites. Clasifica a mano cinco de ellos como *error* o *vuelo real*. Pista: un **pico** tiene llegada **y** salida rápidas; un **vuelo real** solo una de las dos.
+- **2.3b** En esa lista no hay ni un flamenco, aunque FLA03 hace el viaje más largo de todos. Míralo aparte:
+
+  ```sql
+  SELECT id_ave, epoch_ms(timestamp)::VARCHAR AS t_utc,
+         round(dist_prev_m / 1000, 1)         AS km_desde_anterior,
+         round(3.6 * dist_prev_m / dt_prev_s) AS v_llegada_kmh,
+         round(3.6 * dist_next_m / dt_next_s) AS v_salida_kmh,
+         hdop, n_sat
+  FROM pasos
+  WHERE id_ave = 'FLA03' AND dist_prev_m > 50000
+  ORDER BY timestamp
+  ```
+
+  Salen tres filas: dos el 27 de noviembre y una el 18 de marzo. ¿Cuál es un error y cuál un vuelo real? ¿Por qué el HDOP no ayuda aquí? Y sobre todo: **¿por qué ninguna de las tres aparecía en la lista de los 30 más rápidos?** Compara el intervalo mediano de muestreo de la tabla del 1.3.
 - **2.4** Define una regla de **pico** (llegada y salida rápidas a la vez) y otra de **mala geometría** (`hdop`, `n_sat`). ¿Cuántos fixes marca cada una? Crea con ellas dos vistas: `gps_marcado`, con dos columnas booleanas, y `gps_limpio`, sin los sospechosos.
 - **2.5** Ejecuta una consulta que devuelva **solo los fixes descartados con su `geom`** y pulsa **Añadir como capa**. ¿Dónde caen? ¿Se te ha escapado alguno que se vea claramente fuera de sitio?
 
