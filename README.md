@@ -35,6 +35,12 @@ Las diapositivas marcadas como **Ficha** son teoría de apoyo (Mann-Kendall y Se
 
 Guías: [Google Colab](python/introduccion_colab.md) · [Anaconda](python/introduccion_anaconda.md)
 
+## Google Earth Engine · editor de código
+
+| Script | Qué hace |
+|---|---|
+| [ndvi_max_zonas.js](python/gee/ndvi_max_zonas.js) | NDVI máximo de 2023 con Landsat 8 y zonificación por altitud sobre Doñana. Se pega entero en [code.earthengine.google.com](https://code.earthengine.google.com). |
+
 ## Datos
 
 Todo en [`datos/`](datos/):
